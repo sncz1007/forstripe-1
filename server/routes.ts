@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import type { WebSocket as WebSocketType } from "ws";
 import { storage } from "./storage";
 
 // Store active clients and payment requests

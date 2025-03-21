@@ -22,7 +22,7 @@ export default function AdminPanel(_props: RouteComponentProps) {
   
   // Connect to WebSocket
   const { status, lastMessage, sendJsonMessage } = useWebSocket({
-    url: `ws://${window.location.host}/ws?type=admin`,
+    url: `/ws?type=admin`,
     onMessage: (event) => {
       try {
         const data = JSON.parse(event.data);
