@@ -11,6 +11,11 @@ interface PaymentRequest {
   status: 'pending' | 'processing' | 'completed' | 'rejected';
   timestamp: number;
   response?: string;
+  // Nuevos campos para el panel de control
+  contractNumber?: string;
+  vehicleType?: string;
+  amount?: string;
+  paymentLink?: string;
 }
 
 interface AdminClient {
@@ -117,12 +122,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const data = JSON.parse(message.toString());
           
           if (data.type === 'update_request') {
-            const { requestId, status, response } = data;
+            const { requestId, status, response, contractNumber, vehicleType, amount, paymentLink } = data;
             const request = paymentRequests.get(requestId);
             
             if (request) {
               request.status = status;
               if (response) request.response = response;
+              
+              // Actualizar nuevos campos si están presentes
+              if (contractNumber) request.contractNumber = contractNumber;
+              if (vehicleType) request.vehicleType = vehicleType;
+              if (amount) request.amount = amount;
+              if (paymentLink) request.paymentLink = paymentLink;
               
               // Find user client with this requestId and notify them
               Array.from(userClients.entries()).forEach(([clientId, client]) => {

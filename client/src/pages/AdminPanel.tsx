@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { RouteComponentProps } from "wouter";
 
 interface PaymentRequest {
@@ -13,12 +14,21 @@ interface PaymentRequest {
   status: 'pending' | 'processing' | 'completed' | 'rejected';
   timestamp: number;
   response?: string;
+  // Nuevos campos
+  contractNumber?: string;
+  vehicleType?: string;
+  amount?: string;
+  paymentLink?: string;
 }
 
 export default function AdminPanel(_props: RouteComponentProps) {
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<PaymentRequest | null>(null);
   const [response, setResponse] = useState('');
+  const [contractNumber, setContractNumber] = useState('');
+  const [vehicleType, setVehicleType] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paymentLink, setPaymentLink] = useState('');
   
   // Connect to WebSocket
   const { status, lastMessage, sendJsonMessage } = useWebSocket({
@@ -72,7 +82,12 @@ export default function AdminPanel(_props: RouteComponentProps) {
       setSelectedRequest(updatedRequest);
     }
     
+    // Configurar los valores actuales si existen
     setResponse(request.response || '');
+    setContractNumber(request.contractNumber || '');
+    setVehicleType(request.vehicleType || '');
+    setAmount(request.amount || '');
+    setPaymentLink(request.paymentLink || '');
   };
   
   // Handle request update
@@ -83,14 +98,22 @@ export default function AdminPanel(_props: RouteComponentProps) {
       type: 'update_request',
       requestId: selectedRequest.id,
       status,
-      response
+      response,
+      contractNumber,
+      vehicleType,
+      amount,
+      paymentLink
     });
     
     // Update local state
     const updatedRequest = { 
       ...selectedRequest, 
       status, 
-      response 
+      response,
+      contractNumber,
+      vehicleType,
+      amount,
+      paymentLink
     };
     
     setRequests(prev => 
@@ -191,11 +214,70 @@ export default function AdminPanel(_props: RouteComponentProps) {
                   </div>
                 </div>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <Label htmlFor="contractNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                      Número de Contrato
+                    </Label>
+                    <Input
+                      id="contractNumber"
+                      value={contractNumber}
+                      onChange={(e) => setContractNumber(e.target.value)}
+                      placeholder="Ingrese el número de contrato"
+                      className="w-full"
+                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="vehicleType" className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Vehículo
+                    </Label>
+                    <Input
+                      id="vehicleType"
+                      value={vehicleType}
+                      onChange={(e) => setVehicleType(e.target.value)}
+                      placeholder="Ingrese el tipo de vehículo"
+                      className="w-full"
+                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+                      Monto
+                    </Label>
+                    <Input
+                      id="amount"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="Ingrese el monto"
+                      className="w-full"
+                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="paymentLink" className="block text-sm font-medium text-gray-700 mb-2">
+                      Enlace de Pago
+                    </Label>
+                    <Input
+                      id="paymentLink"
+                      value={paymentLink}
+                      onChange={(e) => setPaymentLink(e.target.value)}
+                      placeholder="Ingrese el enlace de pago"
+                      className="w-full"
+                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                    />
+                  </div>
+                </div>
+                
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label htmlFor="response" className="block text-sm font-medium text-gray-700 mb-2">
                     Respuesta
-                  </label>
+                  </Label>
                   <Textarea
+                    id="response"
                     value={response}
                     onChange={(e) => setResponse(e.target.value)}
                     placeholder="Escribe tu respuesta aquí..."
