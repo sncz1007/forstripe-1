@@ -1,0 +1,49 @@
+# Estructura del Proyecto
+
+## Archivos Principales
+
+### Servidor
+- server/index.ts - Punto de entrada del servidor
+- server/routes.ts - Endpoints y lógica de websockets
+- server/storage.ts - Gestión de almacenamiento
+- server/vite.ts - Configuración de Vite para desarrollo
+
+### Cliente
+- client/src/App.tsx - Componente principal y rutas
+- client/src/main.tsx - Punto de entrada del cliente
+- client/src/index.css - Estilos globales
+- client/src/pages/PaymentPage.tsx - Página de pago con validación de RUT
+- client/src/pages/LoadingPage.tsx - Página de carga y visualización de resultados
+- client/src/pages/AdminPanel.tsx - Panel de administración
+- client/src/hooks/use-websocket.ts - Hook personalizado para WebSockets
+- client/src/components/RutInput.tsx - Componente de entrada de RUT con validación
+- client/src/lib/rutValidator.ts - Validador de RUT chileno
+
+### Compartido
+- shared/schema.ts - Esquemas compartidos de datos
+
+### Configuración
+- package.json - Dependencias y scripts de npm
+- tsconfig.json - Configuración de TypeScript
+- vite.config.ts - Configuración de Vite
+- drizzle.config.ts - Configuración de Drizzle (ORM)
+- tailwind.config.ts - Configuración de Tailwind CSS
+- theme.json - Temas para la UI
+
+## Flujo de la Aplicación
+
+1. El usuario ingresa su RUT en la página principal (PaymentPage)
+2. Se valida el RUT con rutValidator.ts y se envía al servidor
+3. La solicitud se almacena en memoria en el servidor (routes.ts)
+4. El usuario ve una pantalla de carga (LoadingPage) que espera la respuesta
+5. El administrador ve la solicitud en el panel de administración (AdminPanel)
+6. El administrador completa los campos adicionales y aprueba/rechaza
+7. El usuario recibe la respuesta y ve el resultado en tiempo real
+
+## Funcionalidades Clave
+
+- Validación de RUT chileno
+- Comunicación en tiempo real con WebSockets
+- API REST para respaldo y recuperación de datos
+- Panel de administración para gestionar solicitudes
+- Notificaciones de actualizaciones en tiempo real

