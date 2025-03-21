@@ -140,57 +140,51 @@ export default function AdminPanel(_props: RouteComponentProps) {
       }
     }
     
-    const message = {
-      type: 'update_request',
-      requestId: selectedRequest.id,
+    // Usar API REST para actualizar directamente
+    const updateData = {
       status,
       response,
-      contractNumber,
-      vehicleType,
-      amount,
-      paymentLink
+      contractNumber: contractNumber || "",
+      vehicleType: vehicleType || "",
+      amount: amount || "",
+      paymentLink: paymentLink || ""
     };
     
-    try {
-      console.log('Intentando enviar mensaje:', message);
-      sendJsonMessage(message);
-      console.log('Message sent to server:', message);
+    // Actualizar usando fetch en lugar de WebSocket
+    fetch(`/api/payment-request/${selectedRequest.id}/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Error al actualizar la solicitud');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Solicitud actualizada exitosamente:', data);
       
-      // Ahora, verificar si la solicitud se ha actualizado después de 1 segundo
-      setTimeout(() => {
-        fetch(`/api/payment-request/${selectedRequest.id}`)
-          .then(res => res.json())
-          .then(updatedRequest => {
-            console.log('Estado actual de la solicitud en servidor:', updatedRequest);
-            if (updatedRequest.status !== status) {
-              console.warn('La solicitud no se actualizó correctamente en el servidor');
-              alert('Hubo un problema al actualizar la solicitud. Por favor, inténtelo de nuevo.');
-            }
-          })
-          .catch(err => {
-            console.error('Error al verificar estado de solicitud:', err);
-          });
-      }, 1000);
-    } catch (error) {
-      console.error('Error al enviar mensaje WebSocket:', error);
-      alert('Error de conexión. Por favor, inténtelo de nuevo.');
-    }
-    
-    // Update local state
-    const updatedRequest = { 
-      ...selectedRequest, 
-      status, 
-      response,
-      contractNumber,
-      vehicleType,
-      amount,
-      paymentLink
-    };
-    
-    setRequests(prev => 
-      prev.map(req => req.id === selectedRequest.id ? updatedRequest : req)
-    );
-    setSelectedRequest(updatedRequest);
+      // Actualizar estado local
+      const updatedRequest = { 
+        ...selectedRequest, 
+        ...updateData
+      };
+      
+      setRequests(prev => 
+        prev.map(req => req.id === selectedRequest.id ? updatedRequest : req)
+      );
+      setSelectedRequest(updatedRequest);
+      
+      // Refrescar la lista completa
+      fetchRequests();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Hubo un problema al actualizar la solicitud. Por favor, inténtelo de nuevo.');
+    });
   };
   
   // Get color for status badge

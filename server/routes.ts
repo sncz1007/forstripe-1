@@ -26,11 +26,13 @@ interface AdminClient {
 interface UserClient {
   ws: WebSocket;
   requestId?: string;
+  clientId: string;
 }
 
-const paymentRequests: Map<string, PaymentRequest> = new Map();
-const adminClients: Set<AdminClient> = new Set();
-const userClients: Map<string, UserClient> = new Map();
+// Usar un array para las solicitudes
+const paymentRequests: PaymentRequest[] = [];
+const adminClients: AdminClient[] = [];
+const userClients: UserClient[] = [];
 
 // DEBUG: Create a test payment request
 const testId = 'test-id-123';
@@ -44,7 +46,7 @@ const testRequest: PaymentRequest = {
   amount: '',
   paymentLink: ''
 };
-paymentRequests.set(testId, testRequest);
+paymentRequests.push(testRequest);
 console.log(`[DEBUG] Created test payment request with ID: ${testId}`);
 
 // Generate unique ID
@@ -75,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: Date.now()
     };
     
-    paymentRequests.set(requestId, paymentRequest);
+    paymentRequests.push(paymentRequest);
     
     // Notify all admin clients about the new payment request
     adminClients.forEach(client => {
@@ -93,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API to check payment request status
   app.get("/api/payment-request/:id", (req: Request, res: Response) => {
     const { id } = req.params;
-    const request = paymentRequests.get(id);
+    const request = paymentRequests.find(req => req.id === id);
     
     if (!request) {
       return res.status(404).json({ error: "Payment request not found" });
@@ -104,9 +106,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // API to get all payment requests (para el panel de admin)
   app.get("/api/payment-requests", (_req: Request, res: Response) => {
-    const requests = Array.from(paymentRequests.values());
-    console.log('Solicitudes enviadas a través de API:', requests.map(r => `${r.id} (${r.status})`));
-    return res.json(requests);
+    console.log(`Enviando ${paymentRequests.length} solicitudes a través de API`);
+    return res.json(paymentRequests);
+  });
+  
+  // API para actualizar solicitudes (para el panel de admin)
+  app.post("/api/payment-request/:id/update", (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status, response, contractNumber, vehicleType, amount, paymentLink } = req.body;
+    
+    console.log(`Actualizando solicitud ${id}:`, req.body);
+    
+    const requestIndex = paymentRequests.findIndex(req => req.id === id);
+    if (requestIndex === -1) {
+      return res.status(404).json({ error: 'Solicitud no encontrada' });
+    }
+    
+    // Actualizar la solicitud
+    const updatedRequest = {
+      ...paymentRequests[requestIndex],
+      status,
+      response,
+      contractNumber,
+      vehicleType,
+      amount,
+      paymentLink
+    };
+    
+    paymentRequests[requestIndex] = updatedRequest;
+    
+    // Notificar a los clientes conectados sobre el cambio
+    userClients.forEach(client => {
+      if (client.requestId === id && client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(JSON.stringify({
+          type: "request_update",
+          request: updatedRequest
+        }));
+      }
+    });
+    
+    // Notificar a todos los administradores
+    adminClients.forEach(client => {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(JSON.stringify({
+          type: "request_updated",
+          request: updatedRequest
+        }));
+      }
+    });
+    
+    res.json(updatedRequest);
   });
 
   // Create HTTP server
@@ -128,18 +177,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (clientType === 'admin') {
       // Admin client
       const admin: AdminClient = { ws, isAdmin: true };
-      adminClients.add(admin);
+      adminClients.push(admin);
       
       // Send list of all payment requests to new admin
-      const requestsList = Array.from(paymentRequests.values());
-      console.log(`Sending ${requestsList.length} requests to new admin`);
+      console.log(`Enviando ${paymentRequests.length} solicitudes al nuevo admin`);
       
       ws.send(JSON.stringify({ 
         type: 'requests_list', 
-        requests: requestsList 
+        requests: paymentRequests 
       }));
-      
-      console.log('Admin panel initialized with requests:', requestsList.map(r => `${r.id} (${r.status})`));
       
       ws.on('message', (message) => {
         try {
@@ -158,10 +204,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               paymentLink 
             });
             
-            const request = paymentRequests.get(requestId);
+            const requestIndex = paymentRequests.findIndex(req => req.id === requestId);
             
-            if (request) {
+            if (requestIndex !== -1) {
               console.log('Updating request with ID:', requestId);
+              const request = paymentRequests[requestIndex];
               console.log('Original request:', JSON.stringify(request));
               
               // Actualizar el estado y respuesta
@@ -196,13 +243,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Find user client with this requestId and notify them
               console.log('Looking for user clients with requestId:', requestId);
-              console.log('Active user clients:', Array.from(userClients.entries()).map(([id, c]) => ({ id, requestId: c.requestId })));
               
               // Solo notificar a los clientes que están viendo esta solicitud específica
               let userNotified = false;
-              Array.from(userClients.entries()).forEach(([clientId, client]) => {
+              for (const client of userClients) {
                 if (client.requestId === requestId && client.ws.readyState === WebSocket.OPEN) {
-                  console.log(`Sending update to user client ${clientId} for request ${requestId}`);
+                  console.log(`Sending update to user client ${client.clientId} for request ${requestId}`);
                   const updateMessage = JSON.stringify({ 
                     type: 'request_update',
                     request
@@ -211,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   client.ws.send(updateMessage);
                   userNotified = true;
                 }
-              });
+              }
               
               if (!userNotified) {
                 console.log('No matching user client found to notify for requestId:', requestId);
@@ -220,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Notify ALL admins about the update (including the one that made the change)
               console.log('Notifying ALL admin clients about update for request:', requestId);
               let adminNotifyCount = 0;
-              adminClients.forEach(adminClient => {
+              for (const adminClient of adminClients) {
                 if (adminClient.ws.readyState === WebSocket.OPEN) {
                   try {
                     const updateMessage = JSON.stringify({ 
@@ -234,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     console.error('Error sending admin update:', err);
                   }
                 }
-              });
+              }
               console.log(`Notified ${adminNotifyCount} admin clients`);
             }
           }
@@ -244,20 +290,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       ws.on('close', () => {
-        adminClients.delete(admin);
+        const index = adminClients.findIndex(a => a.ws === ws);
+        if (index !== -1) {
+          adminClients.splice(index, 1);
+        }
         console.log('Admin client disconnected');
       });
     } else {
       // User client
       const clientId = generateId();
-      const userClient: UserClient = { ws };
+      const userClient: UserClient = { ws, clientId };
       
       console.log(`New user client connected with ID: ${clientId}`);
       
       if (requestId) {
         console.log(`User client has requestId: ${requestId}`);
         userClient.requestId = requestId;
-        const request = paymentRequests.get(requestId);
+        const request = paymentRequests.find(req => req.id === requestId);
         
         if (request) {
           console.log(`Found request for ID ${requestId}:`, JSON.stringify(request));
@@ -275,12 +324,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`User client connected without a requestId`);
       }
       
-      // Add client to the map
-      userClients.set(clientId, userClient);
-      console.log(`Active user clients after adding new one: ${userClients.size}`);
-      console.log(`User clients with requestIds:`, Array.from(userClients.entries())
-        .filter(([_, c]) => c.requestId)
-        .map(([id, c]) => ({ clientId: id, requestId: c.requestId })));
+      // Add client to the array
+      userClients.push(userClient);
+      console.log(`Active user clients: ${userClients.length}`);
       
       ws.on('message', (message) => {
         try {
@@ -289,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (data.type === 'register_request' && data.requestId) {
             userClient.requestId = data.requestId;
-            const request = paymentRequests.get(data.requestId);
+            const request = paymentRequests.find(req => req.id === data.requestId);
             
             if (request) {
               ws.send(JSON.stringify({ 
@@ -304,7 +350,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       ws.on('close', () => {
-        userClients.delete(clientId);
+        const index = userClients.findIndex(c => c.ws === ws);
+        if (index !== -1) {
+          userClients.splice(index, 1);
+        }
         console.log('User client disconnected');
       });
     }
