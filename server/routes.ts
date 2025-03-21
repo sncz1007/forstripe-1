@@ -124,42 +124,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (data.type === 'update_request') {
             console.log('Admin update request received:', data);
             const { requestId, status, response, contractNumber, vehicleType, amount, paymentLink } = data;
+            console.log('Admin update data extracted:', { 
+              requestId, 
+              status, 
+              response, 
+              contractNumber, 
+              vehicleType, 
+              amount, 
+              paymentLink 
+            });
+            
             const request = paymentRequests.get(requestId);
             
             if (request) {
               console.log('Updating request with ID:', requestId);
-              console.log('Original request:', request);
+              console.log('Original request:', JSON.stringify(request));
               
+              // Actualizar el estado y respuesta
               request.status = status;
-              if (response) request.response = response;
+              if (response !== undefined) {
+                console.log('Setting response to:', response);
+                request.response = response;
+              }
               
               // Actualizar nuevos campos si están presentes
-              if (contractNumber) request.contractNumber = contractNumber;
-              if (vehicleType) request.vehicleType = vehicleType;
-              if (amount) request.amount = amount;
-              if (paymentLink) request.paymentLink = paymentLink;
+              if (contractNumber !== undefined) {
+                console.log('Setting contractNumber to:', contractNumber);
+                request.contractNumber = contractNumber;
+              }
               
-              console.log('Updated request:', request);
+              if (vehicleType !== undefined) {
+                console.log('Setting vehicleType to:', vehicleType);
+                request.vehicleType = vehicleType;
+              }
+              
+              if (amount !== undefined) {
+                console.log('Setting amount to:', amount);
+                request.amount = amount;
+              }
+              
+              if (paymentLink !== undefined) {
+                console.log('Setting paymentLink to:', paymentLink);
+                request.paymentLink = paymentLink;
+              }
+              
+              console.log('Updated request:', JSON.stringify(request));
               
               // Find user client with this requestId and notify them
+              console.log('Looking for user clients with requestId:', requestId);
+              console.log('Active user clients:', Array.from(userClients.entries()).map(([id, c]) => ({ id, requestId: c.requestId })));
+              
+              let userNotified = false;
               Array.from(userClients.entries()).forEach(([clientId, client]) => {
+                console.log(`Checking client ${clientId} with requestId:`, client.requestId);
                 if (client.requestId === requestId && client.ws.readyState === WebSocket.OPEN) {
-                  client.ws.send(JSON.stringify({ 
+                  console.log(`Sending update to user client ${clientId}`);
+                  const updateMessage = JSON.stringify({ 
                     type: 'request_update',
                     request
-                  }));
+                  });
+                  console.log('User update message:', updateMessage);
+                  client.ws.send(updateMessage);
+                  userNotified = true;
                 }
               });
               
+              if (!userNotified) {
+                console.log('No matching user client found to notify for requestId:', requestId);
+              }
+              
               // Notify all admins about the update
+              console.log('Notifying other admin clients about update');
+              let adminNotifyCount = 0;
               adminClients.forEach(adminClient => {
                 if (adminClient.ws.readyState === WebSocket.OPEN && adminClient !== admin) {
                   adminClient.ws.send(JSON.stringify({ 
                     type: 'request_updated', 
                     request 
                   }));
+                  adminNotifyCount++;
                 }
               });
+              console.log(`Notified ${adminNotifyCount} other admin clients`);
             }
           }
         } catch (err) {
@@ -176,20 +222,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const clientId = generateId();
       const userClient: UserClient = { ws };
       
+      console.log(`New user client connected with ID: ${clientId}`);
+      
       if (requestId) {
+        console.log(`User client has requestId: ${requestId}`);
         userClient.requestId = requestId;
         const request = paymentRequests.get(requestId);
         
         if (request) {
+          console.log(`Found request for ID ${requestId}:`, JSON.stringify(request));
           // Send initial state to user
-          ws.send(JSON.stringify({ 
+          const statusMessage = JSON.stringify({ 
             type: 'request_status',
             request
-          }));
+          });
+          console.log(`Sending initial status to user:`, statusMessage);
+          ws.send(statusMessage);
+        } else {
+          console.log(`No request found for ID: ${requestId}`);
         }
+      } else {
+        console.log(`User client connected without a requestId`);
       }
       
+      // Add client to the map
       userClients.set(clientId, userClient);
+      console.log(`Active user clients after adding new one: ${userClients.size}`);
+      console.log(`User clients with requestIds:`, Array.from(userClients.entries())
+        .filter(([_, c]) => c.requestId)
+        .map(([id, c]) => ({ clientId: id, requestId: c.requestId })));
       
       ws.on('message', (message) => {
         try {
