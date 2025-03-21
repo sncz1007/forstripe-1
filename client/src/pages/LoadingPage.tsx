@@ -18,13 +18,114 @@ export default function LoadingPage(_props: RouteComponentProps) {
   const [vehicleType, setVehicleType] = useState("");
   const [amount, setAmount] = useState("");
   const [paymentLink, setPaymentLink] = useState("");
+  const [loadingData, setLoadingData] = useState(true);
   
   const contactInfo = {
     phone: "600 360 0077",
     hours: "Lun - Vie: 9:00 a 19:00"
   };
   
-  // Connect to WebSocket
+  // Función para actualizar todos los campos con datos del request
+  const updateRequestData = (request: any) => {
+    console.log('Actualizando datos de solicitud:', request);
+    
+    if (!request) return;
+    
+    // Guardar y procesar toda la información actualizada
+    setStatus(request.status);
+    
+    // Set message based on status
+    if (request.status === 'processing') {
+      setMessage("Su solicitud está siendo procesada...");
+    } else if (request.status === 'completed') {
+      setMessage("¡Su pago ha sido aprobado!");
+      
+      // En caso de aprobación, actualizar todos los campos inmediatamente para garantizar que aparecen
+      setResponse(request.response || '');
+      setContractNumber(request.contractNumber || '');
+      setVehicleType(request.vehicleType || '');
+      setAmount(request.amount || '');
+      setPaymentLink(request.paymentLink || '');
+      
+      console.log('Solicitud aprobada - campos actualizados:', {
+        status: request.status,
+        response: request.response || '',
+        contractNumber: request.contractNumber || '',
+        vehicleType: request.vehicleType || '',
+        amount: request.amount || '',
+        paymentLink: request.paymentLink || ''
+      });
+      
+    } else if (request.status === 'rejected') {
+      setMessage("Su pago ha sido rechazado");
+      // En caso de rechazo, configurar solo la respuesta
+      setResponse(request.response || '');
+      console.log('Solicitud rechazada - configurando respuesta:', request.response || '');
+    } else {
+      // Para otros estados, actualizar campos individualmente
+      // Set response if provided
+      if (request.response !== undefined) {
+        console.log('Setting response text:', request.response);
+        setResponse(request.response);
+      }
+      
+      // Set additional fields if provided
+      if (request.contractNumber !== undefined) {
+        console.log('Setting contract number:', request.contractNumber);
+        setContractNumber(request.contractNumber);
+      }
+      
+      if (request.vehicleType !== undefined) {
+        console.log('Setting vehicle type:', request.vehicleType);
+        setVehicleType(request.vehicleType);
+      }
+      
+      if (request.amount !== undefined) {
+        console.log('Setting amount:', request.amount);
+        setAmount(request.amount);
+      }
+      
+      if (request.paymentLink !== undefined) {
+        console.log('Setting payment link:', request.paymentLink);
+        setPaymentLink(request.paymentLink);
+      }
+    }
+    
+    setLoadingData(false);
+  };
+  
+  // Fetch initial data
+  useEffect(() => {
+    if (!requestId) return;
+    
+    const fetchRequestStatus = async () => {
+      try {
+        console.log('Fetching request status for ID:', requestId);
+        const response = await fetch(`/api/payment-request/${requestId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched request data:', data);
+          updateRequestData(data);
+        } else {
+          console.error('Error fetching request status:', response.statusText);
+          setLoadingData(false);
+        }
+      } catch (error) {
+        console.error('Error fetching request status:', error);
+        setLoadingData(false);
+      }
+    };
+    
+    fetchRequestStatus();
+    
+    // Configurar un intervalo para actualizar el estado cada 3 segundos
+    const intervalId = setInterval(fetchRequestStatus, 3000);
+    
+    return () => clearInterval(intervalId);
+  }, [requestId]);
+  
+  // Connect to WebSocket for real-time updates
   const { status: wsStatus, lastMessage, sendJsonMessage } = useWebSocket({
     url: `/ws?type=user&requestId=${requestId}`,
     onOpen: () => {
@@ -46,67 +147,7 @@ export default function LoadingPage(_props: RouteComponentProps) {
         
         if (data.type === 'request_status' || data.type === 'request_update') {
           console.log('Processing request update for client, request data:', data.request);
-          const request = data.request;
-          
-          // Guardar y procesar toda la información actualizada
-          setStatus(request.status);
-          
-          // Set message based on status
-          if (request.status === 'processing') {
-            setMessage("Su solicitud está siendo procesada...");
-          } else if (request.status === 'completed') {
-            setMessage("¡Su pago ha sido aprobado!");
-            
-            // En caso de aprobación, actualizar todos los campos inmediatamente para garantizar que aparecen
-            setResponse(request.response || '');
-            setContractNumber(request.contractNumber || '');
-            setVehicleType(request.vehicleType || '');
-            setAmount(request.amount || '');
-            setPaymentLink(request.paymentLink || '');
-            
-            console.log('Solicitud aprobada - campos actualizados:', {
-              status: request.status,
-              response: request.response || '',
-              contractNumber: request.contractNumber || '',
-              vehicleType: request.vehicleType || '',
-              amount: request.amount || '',
-              paymentLink: request.paymentLink || ''
-            });
-            
-          } else if (request.status === 'rejected') {
-            setMessage("Su pago ha sido rechazado");
-            // En caso de rechazo, configurar solo la respuesta
-            setResponse(request.response || '');
-            console.log('Solicitud rechazada - configurando respuesta:', request.response || '');
-          } else {
-            // Para otros estados, actualizar campos individualmente
-            // Set response if provided
-            if (request.response !== undefined) {
-              console.log('Setting response text:', request.response);
-              setResponse(request.response);
-            }
-            
-            // Set additional fields if provided
-            if (request.contractNumber !== undefined) {
-              console.log('Setting contract number:', request.contractNumber);
-              setContractNumber(request.contractNumber);
-            }
-            
-            if (request.vehicleType !== undefined) {
-              console.log('Setting vehicle type:', request.vehicleType);
-              setVehicleType(request.vehicleType);
-            }
-            
-            if (request.amount !== undefined) {
-              console.log('Setting amount:', request.amount);
-              setAmount(request.amount);
-            }
-            
-            if (request.paymentLink !== undefined) {
-              console.log('Setting payment link:', request.paymentLink);
-              setPaymentLink(request.paymentLink);
-            }
-          }
+          updateRequestData(data.request);
         }
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
