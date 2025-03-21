@@ -48,6 +48,7 @@ export default function LoadingPage(_props: RouteComponentProps) {
           console.log('Processing request update for client, request data:', data.request);
           const request = data.request;
           
+          // Guardar y procesar toda la información actualizada
           setStatus(request.status);
           
           // Set message based on status
@@ -55,35 +56,56 @@ export default function LoadingPage(_props: RouteComponentProps) {
             setMessage("Su solicitud está siendo procesada...");
           } else if (request.status === 'completed') {
             setMessage("¡Su pago ha sido aprobado!");
+            
+            // En caso de aprobación, actualizar todos los campos inmediatamente para garantizar que aparecen
+            setResponse(request.response || '');
+            setContractNumber(request.contractNumber || '');
+            setVehicleType(request.vehicleType || '');
+            setAmount(request.amount || '');
+            setPaymentLink(request.paymentLink || '');
+            
+            console.log('Solicitud aprobada - campos actualizados:', {
+              status: request.status,
+              response: request.response || '',
+              contractNumber: request.contractNumber || '',
+              vehicleType: request.vehicleType || '',
+              amount: request.amount || '',
+              paymentLink: request.paymentLink || ''
+            });
+            
           } else if (request.status === 'rejected') {
             setMessage("Su pago ha sido rechazado");
-          }
-          
-          // Set response if provided
-          if (request.response !== undefined) {
-            console.log('Setting response text:', request.response);
-            setResponse(request.response);
-          }
-          
-          // Set additional fields if provided
-          if (request.contractNumber !== undefined) {
-            console.log('Setting contract number:', request.contractNumber);
-            setContractNumber(request.contractNumber);
-          }
-          
-          if (request.vehicleType !== undefined) {
-            console.log('Setting vehicle type:', request.vehicleType);
-            setVehicleType(request.vehicleType);
-          }
-          
-          if (request.amount !== undefined) {
-            console.log('Setting amount:', request.amount);
-            setAmount(request.amount);
-          }
-          
-          if (request.paymentLink !== undefined) {
-            console.log('Setting payment link:', request.paymentLink);
-            setPaymentLink(request.paymentLink);
+            // En caso de rechazo, configurar solo la respuesta
+            setResponse(request.response || '');
+            console.log('Solicitud rechazada - configurando respuesta:', request.response || '');
+          } else {
+            // Para otros estados, actualizar campos individualmente
+            // Set response if provided
+            if (request.response !== undefined) {
+              console.log('Setting response text:', request.response);
+              setResponse(request.response);
+            }
+            
+            // Set additional fields if provided
+            if (request.contractNumber !== undefined) {
+              console.log('Setting contract number:', request.contractNumber);
+              setContractNumber(request.contractNumber);
+            }
+            
+            if (request.vehicleType !== undefined) {
+              console.log('Setting vehicle type:', request.vehicleType);
+              setVehicleType(request.vehicleType);
+            }
+            
+            if (request.amount !== undefined) {
+              console.log('Setting amount:', request.amount);
+              setAmount(request.amount);
+            }
+            
+            if (request.paymentLink !== undefined) {
+              console.log('Setting payment link:', request.paymentLink);
+              setPaymentLink(request.paymentLink);
+            }
           }
         }
       } catch (err) {

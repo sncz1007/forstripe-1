@@ -35,18 +35,33 @@ export default function AdminPanel(_props: RouteComponentProps) {
     url: `/ws?type=admin`,
     onMessage: (event) => {
       try {
+        console.log('Admin panel received message:', event.data);
         const data = JSON.parse(event.data);
+        console.log('Admin panel parsed message:', data);
         
         if (data.type === 'requests_list') {
+          console.log('Admin panel setting requests list:', data.requests);
           setRequests(data.requests || []);
         } else if (data.type === 'new_request') {
-          setRequests(prev => [...prev, data.request]);
+          console.log('Admin panel adding new request:', data.request);
+          // Ensure we don't add duplicates
+          setRequests(prev => {
+            // Check if we already have this request
+            const exists = prev.some(r => r.id === data.request.id);
+            if (exists) {
+              console.log('Request already exists in list, not adding');
+              return prev;
+            }
+            return [...prev, data.request];
+          });
         } else if (data.type === 'request_updated') {
+          console.log('Admin panel updating request:', data.request);
           setRequests(prev => 
             prev.map(req => req.id === data.request.id ? data.request : req)
           );
           
           if (selectedRequest?.id === data.request.id) {
+            console.log('Updating selected request with:', data.request);
             setSelectedRequest(data.request);
           }
         }
@@ -104,6 +119,14 @@ export default function AdminPanel(_props: RouteComponentProps) {
       paymentLink
     });
     
+    // Validar que todos los campos necesarios estén establecidos para completar
+    if (status === 'completed') {
+      if (!contractNumber || !vehicleType || !amount || !paymentLink) {
+        alert('Por favor, complete todos los campos antes de aprobar la solicitud.');
+        return;
+      }
+    }
+    
     const message = {
       type: 'update_request',
       requestId: selectedRequest.id,
@@ -115,8 +138,30 @@ export default function AdminPanel(_props: RouteComponentProps) {
       paymentLink
     };
     
-    sendJsonMessage(message);
-    console.log('Message sent to server:', message);
+    try {
+      console.log('Intentando enviar mensaje:', message);
+      sendJsonMessage(message);
+      console.log('Message sent to server:', message);
+      
+      // Ahora, verificar si la solicitud se ha actualizado después de 1 segundo
+      setTimeout(() => {
+        fetch(`/api/payment-request/${selectedRequest.id}`)
+          .then(res => res.json())
+          .then(updatedRequest => {
+            console.log('Estado actual de la solicitud en servidor:', updatedRequest);
+            if (updatedRequest.status !== status) {
+              console.warn('La solicitud no se actualizó correctamente en el servidor');
+              alert('Hubo un problema al actualizar la solicitud. Por favor, inténtelo de nuevo.');
+            }
+          })
+          .catch(err => {
+            console.error('Error al verificar estado de solicitud:', err);
+          });
+      }, 1000);
+    } catch (error) {
+      console.error('Error al enviar mensaje WebSocket:', error);
+      alert('Error de conexión. Por favor, inténtelo de nuevo.');
+    }
     
     // Update local state
     const updatedRequest = { 

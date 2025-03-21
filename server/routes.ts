@@ -123,14 +123,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const admin: AdminClient = { ws, isAdmin: true };
       adminClients.add(admin);
       
-      // Send list of active payment requests to new admin
-      const requestsList = Array.from(paymentRequests.values())
-        .filter(req => req.status === 'pending' || req.status === 'processing');
+      // Send list of all payment requests to new admin
+      const requestsList = Array.from(paymentRequests.values());
+      console.log(`Sending ${requestsList.length} requests to new admin`);
       
       ws.send(JSON.stringify({ 
         type: 'requests_list', 
         requests: requestsList 
       }));
+      
+      console.log('Admin panel initialized with requests:', requestsList.map(r => `${r.id} (${r.status})`));
       
       ws.on('message', (message) => {
         try {
@@ -208,19 +210,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log('No matching user client found to notify for requestId:', requestId);
               }
               
-              // Notify all admins about the update
-              console.log('Notifying other admin clients about update');
+              // Notify ALL admins about the update (including the one that made the change)
+              console.log('Notifying ALL admin clients about update for request:', requestId);
               let adminNotifyCount = 0;
               adminClients.forEach(adminClient => {
-                if (adminClient.ws.readyState === WebSocket.OPEN && adminClient !== admin) {
-                  adminClient.ws.send(JSON.stringify({ 
-                    type: 'request_updated', 
-                    request 
-                  }));
-                  adminNotifyCount++;
+                if (adminClient.ws.readyState === WebSocket.OPEN) {
+                  try {
+                    const updateMessage = JSON.stringify({ 
+                      type: 'request_updated', 
+                      request 
+                    });
+                    console.log(`Sending to admin client update:`, updateMessage);
+                    adminClient.ws.send(updateMessage);
+                    adminNotifyCount++;
+                  } catch (err) {
+                    console.error('Error sending admin update:', err);
+                  }
                 }
               });
-              console.log(`Notified ${adminNotifyCount} other admin clients`);
+              console.log(`Notified ${adminNotifyCount} admin clients`);
             }
           }
         } catch (err) {
