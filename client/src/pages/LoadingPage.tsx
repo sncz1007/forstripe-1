@@ -25,8 +25,16 @@ export default function LoadingPage(_props: RouteComponentProps) {
   };
   
   // Connect to WebSocket
-  const { status: wsStatus, lastMessage } = useWebSocket({
+  const { status: wsStatus, lastMessage, sendJsonMessage } = useWebSocket({
     url: `/ws?type=user&requestId=${requestId}`,
+    onOpen: () => {
+      console.log('WebSocket connection opened, sending request registration');
+      // Send a message to register this client with the specific requestId
+      sendJsonMessage({
+        type: 'register_request',
+        requestId
+      });
+    },
     onMessage: (event) => {
       try {
         console.log('Client received message:', event.data);
@@ -49,28 +57,28 @@ export default function LoadingPage(_props: RouteComponentProps) {
           }
           
           // Set response if provided
-          if (request.response) {
+          if (request.response !== undefined) {
             console.log('Setting response text:', request.response);
             setResponse(request.response);
           }
           
           // Set additional fields if provided
-          if (request.contractNumber) {
+          if (request.contractNumber !== undefined) {
             console.log('Setting contract number:', request.contractNumber);
             setContractNumber(request.contractNumber);
           }
           
-          if (request.vehicleType) {
+          if (request.vehicleType !== undefined) {
             console.log('Setting vehicle type:', request.vehicleType);
             setVehicleType(request.vehicleType);
           }
           
-          if (request.amount) {
+          if (request.amount !== undefined) {
             console.log('Setting amount:', request.amount);
             setAmount(request.amount);
           }
           
-          if (request.paymentLink) {
+          if (request.paymentLink !== undefined) {
             console.log('Setting payment link:', request.paymentLink);
             setPaymentLink(request.paymentLink);
           }

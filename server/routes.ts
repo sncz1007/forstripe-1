@@ -174,11 +174,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log('Looking for user clients with requestId:', requestId);
               console.log('Active user clients:', Array.from(userClients.entries()).map(([id, c]) => ({ id, requestId: c.requestId })));
               
+              // DIRECTLY BROADCAST THIS REQUEST UPDATE TO ALL USER CLIENTS
+              // This ensures any client viewing this request will get updated
               let userNotified = false;
-              Array.from(userClients.entries()).forEach(([clientId, client]) => {
-                console.log(`Checking client ${clientId} with requestId:`, client.requestId);
-                if (client.requestId === requestId && client.ws.readyState === WebSocket.OPEN) {
-                  console.log(`Sending update to user client ${clientId}`);
+              Array.from(userClients.values()).forEach(client => {
+                if (client.ws.readyState === WebSocket.OPEN) {
+                  console.log(`Broadcasting update to all user clients`);
                   const updateMessage = JSON.stringify({ 
                     type: 'request_update',
                     request
