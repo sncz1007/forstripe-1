@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RouteComponentProps } from "wouter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PaymentRequest {
   id: string;
@@ -14,21 +15,47 @@ interface PaymentRequest {
   status: 'pending' | 'processing' | 'completed' | 'rejected';
   timestamp: number;
   response?: string;
-  // Nuevos campos
+  // Campos cliente
+  clientName?: string;
+  // Campos vehículo
   contractNumber?: string;
   vehicleType?: string;
+  licensePlate?: string;
+  paymentMethod?: string;
+  // Campos pago
   amount?: string;
   paymentLink?: string;
+  quotaNumber?: string;
+  interestAmount?: string;
+  totalAmount?: string;
+  dueDate?: string;
 }
 
 export default function AdminPanel(_props: RouteComponentProps) {
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<PaymentRequest | null>(null);
   const [response, setResponse] = useState('');
+  
+  // Campos cliente
+  const [clientName, setClientName] = useState('');
+  const [clientRut, setClientRut] = useState('');
+  
+  // Campos vehículo
   const [contractNumber, setContractNumber] = useState('');
   const [vehicleType, setVehicleType] = useState('');
+  const [licensePlate, setLicensePlate] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  
+  // Campos pago
   const [amount, setAmount] = useState('');
   const [paymentLink, setPaymentLink] = useState('');
+  const [quotaNumber, setQuotaNumber] = useState('');
+  const [interestAmount, setInterestAmount] = useState('');
+  const [totalAmount, setTotalAmount] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  
+  // Campo para la información de texto completo
+  const [fullInfoText, setFullInfoText] = useState('');
   
   // Cargar solicitudes desde la API REST
   const fetchRequests = async () => {
@@ -89,6 +116,121 @@ export default function AdminPanel(_props: RouteComponentProps) {
     return new Date(timestamp).toLocaleString('es-ES');
   };
   
+  // Función para analizar el texto completo
+  const parseFullInfoText = (text: string) => {
+    console.log("Analizando texto completo:", text);
+    
+    // Limpiar los estados previos
+    setClientName('');
+    setClientRut('');
+    setContractNumber('');
+    setVehicleType('');
+    setLicensePlate('');
+    setPaymentMethod('');
+    setAmount('');
+    setPaymentLink('');
+    setQuotaNumber('');
+    setInterestAmount('');
+    setTotalAmount('');
+    setDueDate('');
+    
+    // Dividir el texto en líneas para procesarlo
+    const lines = text.split('\n');
+    
+    // Extraer información del cliente (primera línea)
+    if (lines.length > 0) {
+      setClientName(lines[0].trim());
+    }
+    
+    // Buscar RUT en cualquier línea
+    for (const line of lines) {
+      // Buscar patrones de RUT como "17.546.765-3"
+      if (line.match(/\d{1,2}\.\d{3}\.\d{3}-[\dkK]/)) {
+        setClientRut(line.trim());
+        break;
+      }
+    }
+    
+    // Buscar contrato, patente, vehículo
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Buscar contrato
+      if (line.includes('Contrato') && i+1 < lines.length) {
+        const contractLine = lines[i+1];
+        const contractNumber = contractLine.trim();
+        if (/^\d+$/.test(contractNumber)) {
+          setContractNumber(contractNumber);
+        }
+      }
+      
+      // Buscar patente
+      if (line.includes('Patente') && i+1 < lines.length) {
+        setLicensePlate(lines[i+1].trim());
+      }
+      
+      // Buscar vehículo
+      if (line.includes('Vehículo') && i+1 < lines.length) {
+        setVehicleType(lines[i+1].trim());
+      }
+      
+      // Buscar PAC/PAT
+      if (line.includes('PAC/PAT')) {
+        const parts = line.split('PAC/PAT');
+        if (parts.length > 1) {
+          setPaymentMethod('PAC/PAT ' + parts[1].trim());
+        }
+      }
+      
+      // Buscar número de cuota
+      if (line.includes('Cuota N°')) {
+        const quotaMatch = line.match(/Cuota N°(\d+)/);
+        if (quotaMatch && quotaMatch[1]) {
+          setQuotaNumber(quotaMatch[1]);
+        }
+      }
+      
+      // Buscar montos ($)
+      if (line.includes('$') && !line.includes('$0') && i > 0) {
+        if (lines[i-1].includes('Cuota')) {
+          const amountMatch = line.match(/\$([0-9.,]+)/);
+          if (amountMatch && amountMatch[1]) {
+            setAmount(amountMatch[1]);
+          }
+        }
+        
+        if (lines[i-1].includes('Total Cuota')) {
+          const totalMatch = line.match(/\$([0-9.,]+)/);
+          if (totalMatch && totalMatch[1]) {
+            setTotalAmount(totalMatch[1]);
+          }
+        }
+      }
+      
+      // Buscar interés
+      if (line.includes('$0')) {
+        setInterestAmount('0');
+      }
+      
+      // Buscar fecha de vencimiento
+      if (line.includes('Vence en')) {
+        const daysMatch = line.match(/Vence en (\d+) días/);
+        if (daysMatch && daysMatch[1]) {
+          const daysToExpire = parseInt(daysMatch[1]);
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + daysToExpire);
+          setDueDate(dueDate.toLocaleDateString('es-ES'));
+        }
+      }
+    }
+    
+    // Generar enlace de pago por defecto (ejemplo)
+    setPaymentLink(`https://pago.ejemplo.cl/${contractNumber || '000000'}`);
+    
+    // Generar respuesta automática
+    setResponse(`Estimado/a ${clientName || ''},\n\nHemos recibido su solicitud de pago para el contrato ${contractNumber || ''}, vehículo ${vehicleType || ''}, por un monto de $${amount || ''} correspondiente a la cuota N°${quotaNumber || ''} con vencimiento el ${dueDate || ''}.\n\nPara realizar el pago, por favor acceda al siguiente enlace:\n${paymentLink || 'https://pago.ejemplo.cl'}\n\nAtentamente,\nServicio al Cliente`);
+  };
+
   // Handle request selection
   const handleSelectRequest = (request: PaymentRequest) => {
     setSelectedRequest(request);
@@ -112,10 +254,21 @@ export default function AdminPanel(_props: RouteComponentProps) {
     
     // Configurar los valores actuales si existen
     setResponse(request.response || '');
+    setClientName(request.clientName || '');
+    setClientRut(request.rut || '');
     setContractNumber(request.contractNumber || '');
     setVehicleType(request.vehicleType || '');
+    setLicensePlate(request.licensePlate || '');
+    setPaymentMethod(request.paymentMethod || '');
     setAmount(request.amount || '');
     setPaymentLink(request.paymentLink || '');
+    setQuotaNumber(request.quotaNumber || '');
+    setInterestAmount(request.interestAmount || '');
+    setTotalAmount(request.totalAmount || '');
+    setDueDate(request.dueDate || '');
+    
+    // Limpiar el campo de texto completo
+    setFullInfoText('');
   };
   
   // Handle request update
@@ -126,10 +279,18 @@ export default function AdminPanel(_props: RouteComponentProps) {
       requestId: selectedRequest.id,
       status,
       response,
+      clientName,
+      clientRut,
       contractNumber,
       vehicleType,
+      licensePlate,
+      paymentMethod,
       amount,
-      paymentLink
+      paymentLink,
+      quotaNumber,
+      interestAmount,
+      totalAmount,
+      dueDate
     });
     
     // Validar que todos los campos necesarios estén establecidos para completar
@@ -144,10 +305,17 @@ export default function AdminPanel(_props: RouteComponentProps) {
     const updateData = {
       status,
       response,
+      clientName: clientName || "",
       contractNumber: contractNumber || "",
       vehicleType: vehicleType || "",
+      licensePlate: licensePlate || "",
+      paymentMethod: paymentMethod || "",
       amount: amount || "",
-      paymentLink: paymentLink || ""
+      paymentLink: paymentLink || "",
+      quotaNumber: quotaNumber || "",
+      interestAmount: interestAmount || "",
+      totalAmount: totalAmount || "",
+      dueDate: dueDate || ""
     };
     
     // Actualizar usando fetch en lugar de WebSocket
@@ -279,67 +447,174 @@ export default function AdminPanel(_props: RouteComponentProps) {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <Label htmlFor="contractNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                      Número de Contrato
-                    </Label>
-                    <Input
-                      id="contractNumber"
-                      value={contractNumber}
-                      onChange={(e) => setContractNumber(e.target.value)}
-                      placeholder="Ingrese el número de contrato"
-                      className="w-full"
-                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
-                    />
-                  </div>
+                <Tabs defaultValue="unified" className="mb-6">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="unified">Información Unificada</TabsTrigger>
+                    <TabsTrigger value="detailed">Campos Detallados</TabsTrigger>
+                  </TabsList>
                   
-                  <div>
-                    <Label htmlFor="vehicleType" className="block text-sm font-medium text-gray-700 mb-2">
-                      Tipo de Vehículo
-                    </Label>
-                    <Input
-                      id="vehicleType"
-                      value={vehicleType}
-                      onChange={(e) => setVehicleType(e.target.value)}
-                      placeholder="Ingrese el tipo de vehículo"
-                      className="w-full"
-                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
-                    />
-                  </div>
+                  <TabsContent value="unified" className="pt-4">
+                    <div className="mb-6">
+                      <Label htmlFor="fullInfoText" className="block text-sm font-medium text-gray-700 mb-2">
+                        Información del Cliente (Pegar texto completo)
+                      </Label>
+                      <Textarea
+                        id="fullInfoText"
+                        value={fullInfoText}
+                        onChange={(e) => setFullInfoText(e.target.value)}
+                        placeholder="Pegue aquí toda la información del cliente (nombre, RUT, contrato, vehículo, monto, etc.)"
+                        className="w-full"
+                        rows={10}
+                        disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                      />
+                      
+                      <Button
+                        onClick={() => parseFullInfoText(fullInfoText)}
+                        className="mt-2 bg-blue-600 hover:bg-blue-700"
+                        disabled={!fullInfoText || selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                      >
+                        Analizar Información
+                      </Button>
+                    </div>
+                    
+                    {clientName && (
+                      <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-md">
+                        <h3 className="font-medium text-green-800 mb-2">Información Detectada:</h3>
+                        <p><span className="font-semibold">Cliente:</span> {clientName || 'No detectado'}</p>
+                        <p><span className="font-semibold">RUT:</span> {clientRut || 'No detectado'}</p>
+                        <p><span className="font-semibold">Contrato:</span> {contractNumber || 'No detectado'}</p>
+                        <p><span className="font-semibold">Vehículo:</span> {vehicleType || 'No detectado'}</p>
+                        <p><span className="font-semibold">Patente:</span> {licensePlate || 'No detectado'}</p>
+                        <p><span className="font-semibold">Método Pago:</span> {paymentMethod || 'No detectado'}</p>
+                        <p><span className="font-semibold">Cuota:</span> {quotaNumber || 'No detectado'}</p>
+                        <p><span className="font-semibold">Monto:</span> ${amount || 'No detectado'}</p>
+                        <p><span className="font-semibold">Interés:</span> ${interestAmount || 'No detectado'}</p>
+                        <p><span className="font-semibold">Total:</span> ${totalAmount || 'No detectado'}</p>
+                        <p><span className="font-semibold">Vencimiento:</span> {dueDate || 'No detectado'}</p>
+                      </div>
+                    )}
+                  </TabsContent>
                   
-                  <div>
-                    <Label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-                      Monto
-                    </Label>
-                    <Input
-                      id="amount"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="Ingrese el monto"
-                      className="w-full"
-                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="paymentLink" className="block text-sm font-medium text-gray-700 mb-2">
-                      Enlace de Pago
-                    </Label>
-                    <Input
-                      id="paymentLink"
-                      value={paymentLink}
-                      onChange={(e) => setPaymentLink(e.target.value)}
-                      placeholder="Ingrese el enlace de pago"
-                      className="w-full"
-                      disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
-                    />
-                  </div>
-                </div>
+                  <TabsContent value="detailed" className="pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <Label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">
+                          Nombre del Cliente
+                        </Label>
+                        <Input
+                          id="clientName"
+                          value={clientName}
+                          onChange={(e) => setClientName(e.target.value)}
+                          placeholder="Ingrese el nombre del cliente"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="contractNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                          Número de Contrato
+                        </Label>
+                        <Input
+                          id="contractNumber"
+                          value={contractNumber}
+                          onChange={(e) => setContractNumber(e.target.value)}
+                          placeholder="Ingrese el número de contrato"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="vehicleType" className="block text-sm font-medium text-gray-700 mb-2">
+                          Tipo de Vehículo
+                        </Label>
+                        <Input
+                          id="vehicleType"
+                          value={vehicleType}
+                          onChange={(e) => setVehicleType(e.target.value)}
+                          placeholder="Ingrese el tipo de vehículo"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="licensePlate" className="block text-sm font-medium text-gray-700 mb-2">
+                          Patente
+                        </Label>
+                        <Input
+                          id="licensePlate"
+                          value={licensePlate}
+                          onChange={(e) => setLicensePlate(e.target.value)}
+                          placeholder="Ingrese la patente del vehículo"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+                          Monto
+                        </Label>
+                        <Input
+                          id="amount"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          placeholder="Ingrese el monto"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="paymentLink" className="block text-sm font-medium text-gray-700 mb-2">
+                          Enlace de Pago
+                        </Label>
+                        <Input
+                          id="paymentLink"
+                          value={paymentLink}
+                          onChange={(e) => setPaymentLink(e.target.value)}
+                          placeholder="Ingrese el enlace de pago"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="quotaNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                          Número de Cuota
+                        </Label>
+                        <Input
+                          id="quotaNumber"
+                          value={quotaNumber}
+                          onChange={(e) => setQuotaNumber(e.target.value)}
+                          placeholder="Ingrese el número de cuota"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                          Fecha de Vencimiento
+                        </Label>
+                        <Input
+                          id="dueDate"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
+                          placeholder="Ingrese la fecha de vencimiento"
+                          className="w-full"
+                          disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
                 
                 <div className="mb-6">
                   <Label htmlFor="response" className="block text-sm font-medium text-gray-700 mb-2">
-                    Respuesta
+                    Respuesta al Cliente
                   </Label>
                   <Textarea
                     id="response"
