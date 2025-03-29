@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
-import LoadingSpinner from "@/components/LoadingSpinner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RouteComponentProps } from "wouter";
+import ForumLoader from "@/components/ForumLoader";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export default function LoadingPage(_props: RouteComponentProps) {
   const [, setLocation] = useLocation();
@@ -179,101 +181,87 @@ export default function LoadingPage(_props: RouteComponentProps) {
   };
   
   return (
-    <div className="flex justify-center items-center min-h-screen p-4 bg-white flex-col">
-      <Card className="max-w-[500px] w-full shadow-lg rounded-lg overflow-hidden mb-8">
-        <div className="p-8 flex flex-col items-center">
-          {status === 'pending' || status === 'processing' ? (
-            <div className="mb-8">
-              <LoadingSpinner size="large" />
-            </div>
-          ) : status === 'completed' ? (
-            <div className="mb-8 text-green-500 text-6xl">
-              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-              </svg>
-            </div>
-          ) : (
-            <div className="mb-8 text-red-500 text-6xl">
-              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-              </svg>
-            </div>
-          )}
-          
-          <h2 className={`${getStatusColor()} text-xl font-medium text-center mb-4`}>
-            {message}
-          </h2>
-          
-          {response && (
-            <p className="text-gray-700 text-center mb-6">{response}</p>
-          )}
-          
-          {status === 'completed' && (
-            <div className="w-full mb-6 border-t border-b py-4 border-gray-200">
-              {contractNumber && (
-                <div className="flex justify-between py-2">
-                  <span className="text-gray-600 font-medium">Número de Contrato:</span>
-                  <span className="text-gray-800">{contractNumber}</span>
-                </div>
-              )}
-              
-              {vehicleType && (
-                <div className="flex justify-between py-2">
-                  <span className="text-gray-600 font-medium">Tipo de Vehículo:</span>
-                  <span className="text-gray-800">{vehicleType}</span>
-                </div>
-              )}
-              
-              {amount && (
-                <div className="flex justify-between py-2">
-                  <span className="text-gray-600 font-medium">Monto:</span>
-                  <span className="text-gray-800">{amount}</span>
-                </div>
-              )}
-              
-              {paymentLink && (
-                <div className="flex flex-col py-2">
-                  <span className="text-gray-600 font-medium mb-2">Enlace de Pago:</span>
-                  <a 
-                    href={paymentLink} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="bg-primary text-white py-2 px-4 rounded text-center hover:bg-opacity-90 transition-colors"
-                  >
-                    Realizar Pago
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {(status === 'completed' || status === 'rejected') && (
-            <Button onClick={handleButtonClick} className="w-full">
-              Volver al inicio
-            </Button>
-          )}
-        </div>
-      </Card>
+    <div className="min-h-screen flex flex-col bg-[#F1F1F1]">
+      <Header />
       
-      {/* Contact information */}
-      <div className="flex flex-col md:flex-row gap-8 md:gap-16 text-gray-600 mt-4">
-        <div className="flex flex-col items-center">
-          <p className="font-medium mb-2">Contact Center</p>
-          <p>{contactInfo.phone}</p>
-          <p>{contactInfo.hours}</p>
-        </div>
-        <div className="flex flex-col items-center">
-          <p className="font-medium mb-2">Atención presencial</p>
-          <p>Lun - Vie: 9:00 a 17:00</p>
-        </div>
+      <div className="flex-grow flex items-center justify-center px-4 py-8">
+        {status === 'pending' || status === 'processing' ? (
+          <ForumLoader />
+        ) : (
+          <Card className="max-w-[500px] w-full shadow-lg rounded-lg overflow-hidden mb-8">
+            <div className="p-8 flex flex-col items-center">
+              {status === 'completed' ? (
+                <div className="mb-8 text-green-500 text-6xl">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                  </svg>
+                </div>
+              ) : (
+                <div className="mb-8 text-red-500 text-6xl">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                  </svg>
+                </div>
+              )}
+              
+              <h2 className={`${getStatusColor()} text-xl font-medium text-center mb-4`}>
+                {message}
+              </h2>
+              
+              {response && (
+                <p className="text-gray-700 text-center mb-6">{response}</p>
+              )}
+              
+              {status === 'completed' && (
+                <div className="w-full mb-6 border-t border-b py-4 border-gray-200">
+                  {contractNumber && (
+                    <div className="flex justify-between py-2">
+                      <span className="text-gray-600 font-medium">Número de Contrato:</span>
+                      <span className="text-gray-800">{contractNumber}</span>
+                    </div>
+                  )}
+                  
+                  {vehicleType && (
+                    <div className="flex justify-between py-2">
+                      <span className="text-gray-600 font-medium">Tipo de Vehículo:</span>
+                      <span className="text-gray-800">{vehicleType}</span>
+                    </div>
+                  )}
+                  
+                  {amount && (
+                    <div className="flex justify-between py-2">
+                      <span className="text-gray-600 font-medium">Monto:</span>
+                      <span className="text-gray-800">{amount}</span>
+                    </div>
+                  )}
+                  
+                  {paymentLink && (
+                    <div className="flex flex-col py-2">
+                      <span className="text-gray-600 font-medium mb-2">Enlace de Pago:</span>
+                      <a 
+                        href={paymentLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="bg-primary text-white py-2 px-4 rounded text-center hover:bg-opacity-90 transition-colors"
+                      >
+                        Realizar Pago
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {(status === 'completed' || status === 'rejected') && (
+                <Button onClick={handleButtonClick} className="w-full py-3">
+                  Volver al inicio
+                </Button>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
       
-      {/* Footer */}
-      <div className="w-full mt-16 py-4 bg-gray-100">
-        <div className="container mx-auto text-center text-gray-500 text-sm">
-          <p>© 2025 Todos los derechos reservados</p>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 }

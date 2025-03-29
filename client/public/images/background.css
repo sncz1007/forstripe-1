@@ -1,0 +1,13 @@
+.img-home {
+  background-image: url('./home-bg.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+}
+
+@media screen and (min-width: 767px) {
+  .img-home {
+    min-height: 460px;
+  }
+}

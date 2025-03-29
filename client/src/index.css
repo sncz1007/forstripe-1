@@ -2,6 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --blue: #009ADE;
+  --indigo: #6610f2;
+  --purple: #6f42c1;
+  --pink: #e83e8c;
+  --red: #CB353A;
+  --orange: #fd7e14;
+  --yellow: #FFFF8D;
+  --green: #67BF45;
+  --teal: #20c997;
+  --cyan: #61CBFF;
+  --white: #fff;
+  --gray: #CCCCCC;
+  --gray-dark: #555555;
+  --primary: #009ADE;
+  --secondary: #CCCCCC;
+  --success: #67BF45;
+  --info: #61CBFF;
+  --warning: #FFFF8D;
+  --danger: #CB353A;
+  --light: #F1F1F1;
+  --dark: #555555;
+}
+
+@import url('https://fonts.googleapis.com/css?family=Montserrat:300,400|Roboto&display=swap');
+
+body {
+  font-family: Roboto, sans-serif;
+  min-height: 100%;
+  position: relative;
+}
+
+html {
+  height: 100%;
+}
+
+.font-size-10px { font-size: 10px !important; }
+.font-size-11px { font-size: 11px !important; }
+.font-size-12px { font-size: 12px !important; }
+.font-size-13px { font-size: 13px !important; }
+.font-size-14px { font-size: 14px !important; }
+.font-size-16px { font-size: 16px !important; }
+.font-size-20px { font-size: 20px !important; }
+.font-size-32px { font-size: 32px !important; }
+
+.letter-3 { letter-spacing: 0.3px !important; }
+.letter-5 { letter-spacing: 0.5px !important; }
+
+.img-home {
+  background-color: #009ADE;
+  background-image: linear-gradient(135deg, #009ADE 0%, #006699 100%);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+}
+
+@media screen and (min-width: 767px) {
+  .img-home {
+    min-height: 460px;
+  }
+}
+
+.bg-dark-black {
+  background-color: #333333;
+}
+
+/* Animaciones para el cargador */
+@keyframes exterior {
+  0% { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes interior {
+  0% { transform: rotate(0); }
+  to { transform: rotate(-360deg); }
+}
+
+#orbita-ext {
+  animation: exterior 1.5s linear forwards infinite;
+}
+
+#orbita-int {
+  animation: interior 1.5s linear forwards infinite;
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -9,14 +9,11 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { validateRut, formatRut } from "@/lib/rutValidator";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { apiRequest } from "@/lib/queryClient";
 
 // Form schema with validation
 const formSchema = z.object({
@@ -84,39 +81,45 @@ export default function RutInput() {
   };
 
   return (
-    <Card className="w-full max-w-md p-6 shadow-lg rounded-xl">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-center text-primary">Pago en Línea</h2>
-        <p className="text-gray-500 text-center mt-2">
-          Ingrese su RUT para continuar con el pago
+    <div className="w-full">
+      <div className="mb-4">
+        <h2 className="text-primary font-bold text-[20px]">Pagar es rápido y fácil</h2>
+        <p className="text-[16px] mb-4 tracking-wide">
+          Ahora el pago de tu crédito es <br /> totalmente en línea.
         </p>
       </div>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="rut"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base">RUT</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="12.345.678-9" 
-                    {...field} 
-                    onChange={(e) => handleRutChange(e, field.onChange)}
-                    className="text-lg py-6"
-                    disabled={isSubmitting}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="mt-3 mb-3">
+            <small className="mb-1 w-full text-[14px] text-gray-800 block">Rut</small>
+            <FormField
+              control={form.control}
+              name="rut"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="relative">
+                      <Input 
+                        placeholder="RUT" 
+                        {...field} 
+                        onChange={(e) => handleRutChange(e, field.onChange)}
+                        className="border-gray-800 border-r-0 rounded-l text-[16px] py-2"
+                        minLength={8}
+                        maxLength={12}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500 mt-1 mb-1 w-full" />
+                </FormItem>
+              )}
+            />
+          </div>
           
           <Button 
             type="submit" 
-            className="w-full py-6 text-lg"
+            className="w-full py-3 mt-5 tracking-widest"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
@@ -130,6 +133,6 @@ export default function RutInput() {
           </Button>
         </form>
       </Form>
-    </Card>
+    </div>
   );
 }
