@@ -7,18 +7,18 @@ export default function PaymentPage() {
     <div className="min-h-screen flex flex-col bg-[#F1F1F1] overflow-x-hidden">
       <Header />
       
-      <div className="flex justify-center items-center py-8">
-        <div style={{ width: '1395px', height: '911px' }} className="mx-auto">
-          <div className="flex flex-col md:flex-row h-full bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="flex justify-center items-start pt-8 flex-grow">
+        <div style={{ width: '800px' }} className="mx-auto">
+          <div className="flex flex-col md:flex-row bg-white rounded shadow-sm overflow-hidden">
             {/* Left side: Payment Form */}
             <div className="w-full md:w-1/2 pt-8 pb-8 bg-white flex justify-center items-center">
-              <div className="w-full px-16">
+              <div className="w-full px-8">
                 <RutInput />
               </div>
             </div>
             
             {/* Right side: Image */}
-            <div className="w-full md:w-1/2 h-full">
+            <div className="w-full md:w-1/2">
               <img 
                 src="/images/caratula.png" 
                 alt="Consulta tu pago" 
@@ -28,8 +28,6 @@ export default function PaymentPage() {
           </div>
         </div>
       </div>
-      
-      {/* Los estilos están en index.css */}
       
       <Footer />
     </div>
