@@ -2,9 +2,9 @@ import React from 'react';
 
 const Header: React.FC = () => {
   return (
-    <header className="bg-white h-[60px] shadow-sm w-full">
-      <div className="h-full flex items-center">
-        <div className="flex items-center">
+    <header className="bg-white h-[60px] shadow-sm">
+      <div className="container mx-auto h-full flex items-center justify-center">
+        <div className="flex items-center justify-center">
           <a href="/" className="mr-6">
             <img src="/images/forum.png" width="110" alt="Forum" title="Forum" />
           </a>

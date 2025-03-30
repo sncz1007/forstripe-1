@@ -5,12 +5,10 @@ import Footer from "@/components/Footer";
 export default function PaymentPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#F1F1F1] overflow-x-hidden">
-      <div className="container mx-auto px-4" style={{ maxWidth: '1100px' }}>
-        <Header />
-      </div>
+      <Header />
       
       <div className="flex justify-center items-start pt-6 pb-6 flex-grow">
-        <div style={{ width: '1100px' }} className="mx-auto px-4">
+        <div style={{ width: '900px' }} className="mx-auto">
           <div className="flex flex-col md:flex-row bg-white rounded shadow-sm overflow-hidden">
             {/* Left side: Payment Form */}
             <div className="w-full md:w-1/2 pt-8 pb-8 bg-white flex justify-center items-center">
@@ -31,9 +29,7 @@ export default function PaymentPage() {
         </div>
       </div>
       
-      <div className="container mx-auto px-4" style={{ maxWidth: '1100px' }}>
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }
