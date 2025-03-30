@@ -83,8 +83,8 @@ export default function RutInput() {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h2 className="text-[#00AEEF] font-bold text-[24px]">Pagar es rápido y fácil</h2>
-        <p className="text-[16px] mb-4 text-gray-800">
+        <h2 className="text-[#00AEEF] font-semibold text-[22px]">Pagar es rápido y fácil</h2>
+        <p className="text-[16px] text-gray-600">
           Ahora el pago de tu crédito es<br />totalmente en línea.
         </p>
       </div>
@@ -92,7 +92,7 @@ export default function RutInput() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="mb-6">
-            <label className="block text-[16px] mb-2 text-gray-800">Rut</label>
+            <label className="block text-[16px] mb-2 text-gray-600">Rut</label>
             <FormField
               control={form.control}
               name="rut"
@@ -119,7 +119,7 @@ export default function RutInput() {
           
           <Button 
             type="submit" 
-            className="w-full py-6 bg-[#00AEEF] hover:bg-[#0096cc] text-white font-medium text-[18px]"
+            className="w-full py-3 bg-[#00AEEF] hover:bg-[#0096cc] text-white font-normal text-[16px] rounded"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

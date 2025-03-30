@@ -9,23 +9,21 @@ export default function PaymentPage() {
       
       <div className="container mx-auto">
         <div className="row pt-4">
-          <div className="flex flex-col md:flex-row h-full">
+          <div className="flex flex-col md:flex-row h-full bg-white rounded-lg shadow-sm overflow-hidden">
             {/* Left side: Payment Form */}
-            <div className="w-full md:w-7/12 pt-5 pb-5 bg-white flex justify-center items-center">
-              <div className="w-full max-w-md pt-5 pb-5">
+            <div className="w-full md:w-1/2 pt-8 pb-8 bg-white flex justify-center items-center">
+              <div className="w-full px-10">
                 <RutInput />
               </div>
             </div>
             
-            {/* Right side: Image Background */}
-            <div className="w-full md:w-5/12 bg-[#009ADE] md:h-[460px] flex items-center justify-center">
-              <div className="h-full w-full p-4 flex items-center justify-center">
-                <img 
-                  src="/images/caratula.png" 
-                  alt="Consulta tu pago" 
-                  className="max-w-full max-h-full object-contain" 
-                />
-              </div>
+            {/* Right side: Image */}
+            <div className="w-full md:w-1/2 h-auto">
+              <img 
+                src="/images/caratula.png" 
+                alt="Consulta tu pago" 
+                className="w-full h-full object-cover" 
+              />
             </div>
           </div>
         </div>
