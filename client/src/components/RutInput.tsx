@@ -81,18 +81,18 @@ export default function RutInput() {
   };
 
   return (
-    <div className="w-full">
-      <div className="mb-6">
-        <h2 className="text-[#00AEEF] font-semibold text-[22px]">Pagar es rápido y fácil</h2>
+    <div className="w-full flex flex-col items-center justify-start">
+      <div className="mb-8 text-center">
+        <h2 className="text-[#00AEEF] font-semibold text-[24px] mb-2">Pagar es rápido y fácil</h2>
         <p className="text-[16px] text-gray-600">
           Ahora el pago de tu crédito es<br />totalmente en línea.
         </p>
       </div>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
           <div className="mb-6">
-            <label className="block text-[16px] mb-2 text-gray-600">Rut</label>
+            <label className="block text-[16px] mb-2 text-gray-700 font-medium">Rut</label>
             <FormField
               control={form.control}
               name="rut"
@@ -101,7 +101,7 @@ export default function RutInput() {
                   <FormControl>
                     <div className="relative">
                       <Input 
-                        placeholder="RUT" 
+                        placeholder="Ingresa tu RUT" 
                         {...field} 
                         onChange={(e) => handleRutChange(e, field.onChange)}
                         className="border-gray-300 rounded text-[16px] py-2 h-12"
@@ -119,7 +119,7 @@ export default function RutInput() {
           
           <Button 
             type="submit" 
-            className="w-full py-3 bg-[#00AEEF] hover:bg-[#0096cc] text-white font-normal text-[16px] rounded"
+            className="w-full py-3 bg-[#00AEEF] hover:bg-[#0096cc] text-white font-medium text-[16px] rounded-md"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

@@ -4,10 +4,10 @@ const Footer: React.FC = () => {
   return (
     <div className="w-full mt-auto">
       <footer className="bg-white w-full pt-10 pb-8 flex justify-center border-t border-gray-200">
-        <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div className="flex items-center">
-            <span className="mr-3">
-              <img src="/images/direccion.png" alt="Forum dirección" title="Forum dirección" />
+        <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="flex items-center justify-center">
+            <span className="mr-4">
+              <img src="/images/direccion.png" alt="Forum dirección" title="Forum dirección" width="32" />
             </span>
             <div>
               <small className="block text-sm text-gray-600">Dirección</small>
@@ -23,9 +23,9 @@ const Footer: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex items-center">
-            <span className="mr-3">
-              <img src="/images/call-center.png" alt="Forum Call Center" title="Forum Call Center" />
+          <div className="flex items-center justify-center">
+            <span className="mr-4">
+              <img src="/images/call-center.png" alt="Forum Call Center" title="Forum Call Center" width="32" />
             </span>
             <div>
               <small className="block text-sm text-gray-600">Contact Center</small>
@@ -41,9 +41,9 @@ const Footer: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex items-center">
-            <span className="mr-3">
-              <img src="/images/time.png" alt="Forum Horarios de atención" title="Forum Horarios de atención" />
+          <div className="flex items-center justify-center">
+            <span className="mr-4">
+              <img src="/images/time.png" alt="Forum Horarios de atención" title="Forum Horarios de atención" width="32" />
             </span>
             <div>
               <small className="block text-sm text-gray-600">Atención presencial</small>
