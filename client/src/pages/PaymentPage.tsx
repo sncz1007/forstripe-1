@@ -18,12 +18,12 @@ export default function PaymentPage() {
             </div>
             
             {/* Right side: Image Background */}
-            <div className="w-full md:w-5/12 md:h-[460px]">
-              <div className="h-full w-full">
+            <div className="w-full md:w-5/12 bg-[#009ADE] md:h-[460px] flex items-center justify-center">
+              <div className="h-full w-full p-4 flex items-center justify-center">
                 <img 
                   src="/images/caratula.png" 
                   alt="Consulta tu pago" 
-                  className="w-full h-full object-cover" 
+                  className="max-w-full max-h-full object-contain" 
                 />
               </div>
             </div>
