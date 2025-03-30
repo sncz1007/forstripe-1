@@ -3,17 +3,15 @@ import React from 'react';
 const Header: React.FC = () => {
   return (
     <header className="bg-white h-[60px] shadow-sm">
-      <div className="container mx-auto h-full flex items-center">
+      <div className="container mx-auto h-full flex items-center justify-start">
         <div className="flex items-center">
-          <a href="/" className="pr-2">
+          <a href="/" className="mr-4">
             <img src="/images/forum.png" width="110" alt="Forum" title="Forum" />
           </a>
-          <a href="/" className="pl-2">
+          <a href="/" className="mx-4">
             <img src="/images/salvum-logo.png" width="110" alt="Salvum" title="Salvum" />
           </a>
-        </div>
-        <div className="flex-grow">
-          <h1 className="text-3xl text-primary font-medium tracking-wide m-0 truncate text-center">
+          <h1 className="text-3xl text-primary font-light tracking-wide m-0 ml-4">
             Pago Express
           </h1>
         </div>
