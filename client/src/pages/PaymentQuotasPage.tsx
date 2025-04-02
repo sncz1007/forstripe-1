@@ -7,6 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import ForumLoader from "@/components/ForumLoader";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 interface QuotaInfo {
   contractNumber: string;
@@ -114,226 +116,232 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   }
   
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-5xl mx-auto pt-4 px-4">
-        {/* Header con nombre y RUT */}
-        <div className="flex items-center mb-6">
-          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-            <img src="/attached_assets/user.png" alt="Usuario" className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[#009ADE] font-medium">{clientName}</p>
-            <p className="text-gray-600 text-sm">{clientRut}</p>
-          </div>
-        </div>
-        
-        {/* Progress steps */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between relative">
-            <div className="absolute left-0 right-0 h-1 bg-gray-300 top-1/2 transform -translate-y-1/2 z-0"></div>
-            <div className="flex flex-col items-center relative z-10">
-              <div className="w-6 h-6 rounded-full bg-[#009ADE] flex items-center justify-center text-white text-sm mb-1">
-                ⚫
-              </div>
-              <div className="text-center text-xs text-gray-600 w-24">
-                Cuotas a pagar
-              </div>
+    <div className="min-h-screen flex flex-col bg-[#F1F1F1] overflow-x-hidden">
+      <Header />
+      
+      <div className="flex-grow">
+        <div className="max-w-5xl mx-auto pt-4 px-4">
+          {/* Header con nombre y RUT */}
+          <div className="flex items-center mb-6">
+            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+              <img src="/attached_assets/user.png" alt="Usuario" className="w-6 h-6" />
             </div>
-            <div className="flex flex-col items-center relative z-10">
-              <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-sm mb-1">
-                ⚫
-              </div>
-              <div className="text-center text-xs text-gray-600 w-24">
-                Método de pago
-              </div>
-            </div>
-            <div className="flex flex-col items-center relative z-10">
-              <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-sm mb-1">
-                ⚫
-              </div>
-              <div className="text-center text-xs text-gray-600 w-24">
-                Comprobante de pago
-              </div>
+            <div>
+              <p className="text-[#009ADE] font-medium">{clientName}</p>
+              <p className="text-gray-600 text-sm">{clientRut}</p>
             </div>
           </div>
-        </div>
-        
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Main content - Cuotas */}
-          <div className="md:w-2/3">
-            <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
-              <h2 className="text-xl font-medium text-[#009ADE] mb-6">Cuotas a pagar</h2>
-              
-              {/* Cuota 1 */}
-              <div className="border-b pb-6 mb-6">
-                <div className="bg-[#009ADE] text-white p-4 rounded-t-lg flex justify-between items-center mb-4">
-                  <div className="grid grid-cols-3 gap-6 w-full">
-                    <div>
-                      <div className="text-xs opacity-80">Contrato</div>
-                      <div className="font-medium">{quotas[0].contractNumber}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs opacity-80">Patente</div>
-                      <div className="font-medium">{quotas[0].licensePlate}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs opacity-80">Vehículo</div>
-                      <div className="font-medium">{quotas[0].vehicleType}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center ml-4">
-                    <div className="w-5 h-5 bg-white rounded-full mr-2 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#009ADE]"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    </div>
-                    <span className="whitespace-nowrap">PAC/PAT Activo</span>
-                  </div>
+          
+          {/* Progress steps */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between relative">
+              <div className="absolute left-0 right-0 h-1 bg-gray-300 top-1/2 transform -translate-y-1/2 z-0"></div>
+              <div className="flex flex-col items-center relative z-10">
+                <div className="w-6 h-6 rounded-full bg-[#009ADE] flex items-center justify-center text-white text-sm mb-1">
+                  ⚫
                 </div>
-                
-                <div className="flex items-center">
-                  <Checkbox 
-                    id={`quota-0`}
-                    checked={selectedQuotas.includes(0)}
-                    onCheckedChange={() => handleQuotaSelection(0)}
-                    className="mr-3"
-                  />
-                  
-                  <div className="grid grid-cols-4 gap-6 w-full">
-                    <div>
-                      <div className="text-xs text-gray-500">Cuota N°6</div>
-                      <div className="text-sm">Vence en 4 días</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Cuota</div>
-                      <div className="font-medium">$1.358.270</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Interés Mora</div>
-                      <div className="font-medium">$0</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Total Cuota</div>
-                      <div className="font-medium">$1.358.270</div>
-                    </div>
-                  </div>
+                <div className="text-center text-xs text-gray-600 w-24">
+                  Cuotas a pagar
                 </div>
               </div>
-              
-              {/* Cuota 2 */}
-              <div>
-                <div className="bg-[#009ADE] text-white p-4 rounded-t-lg flex justify-between items-center mb-4">
-                  <div className="grid grid-cols-3 gap-6 w-full">
-                    <div>
-                      <div className="text-xs opacity-80">Contrato</div>
-                      <div className="font-medium">{quotas[1].contractNumber}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs opacity-80">Patente</div>
-                      <div className="font-medium">{quotas[1].licensePlate}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs opacity-80">Vehículo</div>
-                      <div className="font-medium">{quotas[1].vehicleType}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center ml-4">
-                    <div className="w-5 h-5 bg-white rounded-full mr-2 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#009ADE]"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    </div>
-                    <span className="whitespace-nowrap">PAC/PAT Activo</span>
-                  </div>
+              <div className="flex flex-col items-center relative z-10">
+                <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-sm mb-1">
+                  ⚫
                 </div>
-                
-                <div className="flex items-center">
-                  <Checkbox 
-                    id={`quota-1`}
-                    checked={selectedQuotas.includes(1)}
-                    onCheckedChange={() => handleQuotaSelection(1)}
-                    className="mr-3"
-                  />
-                  
-                  <div className="grid grid-cols-4 gap-6 w-full">
-                    <div>
-                      <div className="text-xs text-gray-500">Cuota N°2</div>
-                      <div className="text-sm">Vence en 1 día</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Cuota</div>
-                      <div className="font-medium">$917.539</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Interés Mora</div>
-                      <div className="font-medium">$0</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Total Cuota</div>
-                      <div className="font-medium">$917.539</div>
-                    </div>
-                  </div>
+                <div className="text-center text-xs text-gray-600 w-24">
+                  Método de pago
+                </div>
+              </div>
+              <div className="flex flex-col items-center relative z-10">
+                <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-sm mb-1">
+                  ⚫
+                </div>
+                <div className="text-center text-xs text-gray-600 w-24">
+                  Comprobante de pago
                 </div>
               </div>
             </div>
           </div>
           
-          {/* Sidebar - Resumen */}
-          <div className="md:w-1/3">
-            <div className="bg-[#01284E] text-white rounded-lg p-6 shadow-sm mb-6">
-              <h2 className="text-xl font-medium mb-6">Resumen total de Pago</h2>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <span>Total Cuotas {selectedQuotas.length}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Main content - Cuotas */}
+            <div className="md:w-2/3">
+              <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
+                <h2 className="text-xl font-medium text-[#009ADE] mb-6">Cuotas a pagar</h2>
+                
+                {/* Cuota 1 */}
+                <div className="border-b pb-6 mb-6">
+                  <div className="bg-[#009ADE] text-white p-4 rounded-t-lg flex justify-between items-center mb-4">
+                    <div className="grid grid-cols-3 gap-6 w-full">
+                      <div>
+                        <div className="text-xs opacity-80">Contrato</div>
+                        <div className="font-medium">{quotas[0].contractNumber}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs opacity-80">Patente</div>
+                        <div className="font-medium">{quotas[0].licensePlate}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs opacity-80">Vehículo</div>
+                        <div className="font-medium">{quotas[0].vehicleType}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center ml-4">
+                      <div className="w-5 h-5 bg-white rounded-full mr-2 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#009ADE]"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </div>
+                      <span className="whitespace-nowrap">PAC/PAT Activo</span>
+                    </div>
                   </div>
-                  <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
+                  
+                  <div className="flex items-center">
+                    <Checkbox 
+                      id={`quota-0`}
+                      checked={selectedQuotas.includes(0)}
+                      onCheckedChange={() => handleQuotaSelection(0)}
+                      className="mr-3"
+                    />
+                    
+                    <div className="grid grid-cols-4 gap-6 w-full">
+                      <div>
+                        <div className="text-xs text-gray-500">Cuota N°6</div>
+                        <div className="text-sm">Vence en 4 días</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Cuota</div>
+                        <div className="font-medium">$1.358.270</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Interés Mora</div>
+                        <div className="font-medium">$0</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Total Cuota</div>
+                        <div className="font-medium">$1.358.270</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <span>Total Interés Mora</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                {/* Cuota 2 */}
+                <div>
+                  <div className="bg-[#009ADE] text-white p-4 rounded-t-lg flex justify-between items-center mb-4">
+                    <div className="grid grid-cols-3 gap-6 w-full">
+                      <div>
+                        <div className="text-xs opacity-80">Contrato</div>
+                        <div className="font-medium">{quotas[1].contractNumber}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs opacity-80">Patente</div>
+                        <div className="font-medium">{quotas[1].licensePlate}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs opacity-80">Vehículo</div>
+                        <div className="font-medium">{quotas[1].vehicleType}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center ml-4">
+                      <div className="w-5 h-5 bg-white rounded-full mr-2 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#009ADE]"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </div>
+                      <span className="whitespace-nowrap">PAC/PAT Activo</span>
+                    </div>
                   </div>
-                  <span className="font-medium">$0</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
+                  
                   <div className="flex items-center">
-                    <span>Total Gastos Cobranza</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <Checkbox 
+                      id={`quota-1`}
+                      checked={selectedQuotas.includes(1)}
+                      onCheckedChange={() => handleQuotaSelection(1)}
+                      className="mr-3"
+                    />
+                    
+                    <div className="grid grid-cols-4 gap-6 w-full">
+                      <div>
+                        <div className="text-xs text-gray-500">Cuota N°2</div>
+                        <div className="text-sm">Vence en 1 día</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Cuota</div>
+                        <div className="font-medium">$917.539</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Interés Mora</div>
+                        <div className="font-medium">$0</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Total Cuota</div>
+                        <div className="font-medium">$917.539</div>
+                      </div>
+                    </div>
                   </div>
-                  <span className="font-medium">$0</span>
-                </div>
-              </div>
-              
-              <div className="border-t border-blue-800 my-4 pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total a Pagar</span>
-                  <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
                 </div>
               </div>
             </div>
             
-            <Button 
-              onClick={handleContinue}
-              disabled={selectedQuotas.length === 0}
-              className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800"
-              variant="outline"
-            >
-              Continuar
-            </Button>
-            
-            <div className="mt-8 bg-white rounded-lg p-4 border border-blue-100">
-              <div>
-                <img src="/attached_assets/banner-sucursal-virtual2.png" alt="Sucursal Virtual" className="w-full h-auto rounded-lg object-cover mb-3" />
-                <h3 className="text-[#009ADE] font-medium text-center">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
-                <p className="text-center text-sm mt-2">Conócela registrándote aquí.</p>
+            {/* Sidebar - Resumen */}
+            <div className="md:w-1/3">
+              <div className="bg-[#01284E] text-white rounded-lg p-6 shadow-sm mb-6">
+                <h2 className="text-xl font-medium mb-6">Resumen total de Pago</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <span>Total Cuotas {selectedQuotas.length}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <span>Total Interés Mora</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <span className="font-medium">$0</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <span>Total Gastos Cobranza</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <span className="font-medium">$0</span>
+                  </div>
+                </div>
+                
+                <div className="border-t border-blue-800 my-4 pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Total a Pagar</span>
+                    <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleContinue}
+                disabled={selectedQuotas.length === 0}
+                className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800"
+                variant="outline"
+              >
+                Continuar
+              </Button>
+              
+              <div className="mt-8 bg-white rounded-lg p-4 border border-blue-100">
+                <div>
+                  <img src="/attached_assets/banner-sucursal-virtual2.png" alt="Sucursal Virtual" className="w-full h-auto rounded-lg object-cover mb-3" />
+                  <h3 className="text-[#009ADE] font-medium text-center">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
+                  <p className="text-center text-sm mt-2">Conócela registrándote aquí.</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

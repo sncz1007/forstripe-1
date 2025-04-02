@@ -16,7 +16,7 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
         {/* Header con nombre y RUT */}
         <div className="flex items-center mb-8">
           <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-            <img src="/images/user.png" alt="Usuario" className="w-6 h-6" />
+            <img src="/attached_assets/user.png" alt="Usuario" className="w-6 h-6" />
           </div>
           <div>
             <p className="text-primary font-medium">CRISTIAN SERVANDO VALENZUELA BUSTOS</p>
@@ -62,7 +62,7 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
               <div className="wrap-info p-4 border rounded-lg mb-6" style={{ borderRadius: "0 0 80px 0", borderColor: "#BABABA" }}>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-medium text-primary">¡Pago realizado con éxito!</h2>
-                  <img src="/images/time.png" alt="Tiempo" className="w-6 h-6" />
+                  <img src="/attached_assets/time.png" alt="Tiempo" className="w-6 h-6" />
                 </div>
                 
                 <div className="space-y-4">
@@ -121,7 +121,7 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
               
               <div className="flex items-center">
                 <div className="flex-shrink-0 mr-3">
-                  <img src="/images/direccion.png" alt="Dirección" className="w-8 h-8" />
+                  <img src="/attached_assets/direccion.png" alt="Dirección" className="w-8 h-8" />
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-700">Sucursales</h3>
@@ -136,7 +136,7 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
             <div className="mt-8 bg-white rounded-lg p-4 border border-blue-100">
               <div className="flex flex-col">
                 <div className="flex-shrink-0 mb-4">
-                  <img src="/images/banner-sucursal-virtual2.png" alt="Ejecutivo" className="w-full h-auto rounded-lg object-cover" />
+                  <img src="/attached_assets/banner-sucursal-virtual2.png" alt="Ejecutivo" className="w-full h-auto rounded-lg object-cover" />
                 </div>
                 <div>
                   <h3 className="text-primary font-medium">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
@@ -148,7 +148,7 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
             <div className="mt-6 bg-white rounded-lg p-4 border border-blue-100">
               <div className="flex items-center">
                 <div className="flex-shrink-0 mr-3">
-                  <img src="/images/call-center.png" alt="Centro de Llamadas" className="w-10 h-10" />
+                  <img src="/attached_assets/call-center.png" alt="Centro de Llamadas" className="w-10 h-10" />
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-700">Centro de Atención al Cliente</h3>
@@ -158,7 +158,7 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
             </div>
             
             <div className="mt-6 text-center">
-              <img src="/images/forum.png" alt="Forum" className="h-10 mx-auto" />
+              <img src="/attached_assets/forum.png" alt="Forum" className="h-10 mx-auto" />
               <p className="text-sm text-gray-500 mt-2">© 2025 Forum Servicios Financieros</p>
             </div>
           </div>
