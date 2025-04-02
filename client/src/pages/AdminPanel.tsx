@@ -271,7 +271,7 @@ export default function AdminPanel(_props: RouteComponentProps) {
   };
   
   // Handle request update
-  const handleUpdateRequest = (status: 'completed' | 'rejected') => {
+  const handleUpdateRequest = (status: 'processing' | 'completed' | 'rejected') => {
     if (!selectedRequest) return;
     
     console.log('Sending update with values:', {
@@ -292,8 +292,13 @@ export default function AdminPanel(_props: RouteComponentProps) {
       dueDate
     });
     
+    // Para ir directamente a la página de cuotas
+    if (status === 'processing') {
+      // No necesitamos validaciones extras para este estado
+      console.log('Procesando solicitud para página de cuotas');
+    }
     // Validar que todos los campos necesarios estén establecidos para completar
-    if (status === 'completed') {
+    else if (status === 'completed') {
       if (!contractNumber || !vehicleType || !amount || !paymentLink) {
         alert('Por favor, complete todos los campos antes de aprobar la solicitud.');
         return;
@@ -511,6 +516,16 @@ export default function AdminPanel(_props: RouteComponentProps) {
                     disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
                   >
                     Rechazar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Redirigir a la página de cuotas
+                      window.location.href = "/payment-quotas"; 
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                  >
+                    Ver Cuotas
                   </Button>
                   <Button
                     onClick={() => handleUpdateRequest('completed')}
