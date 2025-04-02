@@ -42,9 +42,14 @@ export default function LoadingPage(_props: RouteComponentProps) {
       setMessage("Su solicitud está siendo procesada...");
       
       // Cuando el estado cambia a 'processing', redireccionar a la página de cuotas
+      // Esta redirección solo aplica para el cliente, no para el admin
       console.log('Solicitud en procesamiento - redireccionando a página de cuotas');
-      setLocation('/payment-quotas');
-      return; // Importante: retornar para evitar seguir procesando
+      
+      // Verificar si estamos en la ruta de admin antes de redireccionar
+      if (window.location.href.indexOf('/admin') === -1) {
+        setLocation('/payment-quotas');
+        return; // Importante: retornar para evitar seguir procesando
+      }
       
     } else if (request.status === 'completed') {
       setMessage("¡Su pago ha sido aprobado!");

@@ -519,8 +519,8 @@ export default function AdminPanel(_props: RouteComponentProps) {
                   </Button>
                   <Button
                     onClick={() => {
-                      // Cambiar el estado a 'processing' y redirigir a la página de cuotas 
-                      // para que el cliente pueda seleccionar las cuotas a pagar
+                      // Cambiar el estado a 'processing' para que el cliente
+                      // pueda seleccionar las cuotas a pagar, pero el administrador se queda en el panel
                       const updateData = {
                         status: 'processing',
                         clientName: clientName || "",
@@ -542,8 +542,21 @@ export default function AdminPanel(_props: RouteComponentProps) {
                       })
                       .then(data => {
                         console.log('Solicitud aprobada exitosamente:', data);
-                        // Redireccionar a la página de cuotas
-                        window.location.href = "/payment-quotas";
+                        
+                        // Actualizar la solicitud en el estado local para reflejar el cambio
+                        const updatedRequest: PaymentRequest = { 
+                          ...selectedRequest, 
+                          status: 'processing' as 'pending' | 'processing' | 'completed' | 'rejected',
+                          response: "Solicitud aprobada."
+                        };
+                        
+                        setRequests(prev => 
+                          prev.map(req => req.id === selectedRequest.id ? updatedRequest : req)
+                        );
+                        setSelectedRequest(updatedRequest);
+                        
+                        // Mostrar mensaje de éxito
+                        alert('Solicitud aprobada exitosamente');
                       })
                       .catch(error => {
                         console.error('Error:', error);
@@ -551,7 +564,7 @@ export default function AdminPanel(_props: RouteComponentProps) {
                       });
                     }}
                     className="bg-green-600 hover:bg-green-700 text-white"
-                    disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
+                    disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected' || selectedRequest.status === 'processing'}
                   >
                     Aprobar
                   </Button>
