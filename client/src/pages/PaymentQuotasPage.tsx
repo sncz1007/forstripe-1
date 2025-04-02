@@ -96,8 +96,13 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       return;
     }
     
-    // Ir a la siguiente etapa
-    setCurrentStep(currentStep + 1);
+    // Ir a la siguiente etapa (simulación de procesamiento de pago)
+    setIsLoading(true);
+    
+    // Simulamos un breve tiempo de procesamiento y luego redirigimos
+    setTimeout(() => {
+      setLocation('/payment-success');
+    }, 1500);
   };
   
   if (isLoading) {
