@@ -546,7 +546,7 @@ export default function AdminPanel(_props: RouteComponentProps) {
                         // Actualizar la solicitud en el estado local para reflejar el cambio
                         const updatedRequest: PaymentRequest = { 
                           ...selectedRequest, 
-                          status: 'processing' as 'pending' | 'processing' | 'completed' | 'rejected',
+                          status: 'processing',
                           response: "Solicitud aprobada."
                         };
                         
@@ -564,7 +564,7 @@ export default function AdminPanel(_props: RouteComponentProps) {
                       });
                     }}
                     className="bg-green-600 hover:bg-green-700 text-white"
-                    disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected' || selectedRequest.status === 'processing'}
+                    disabled={selectedRequest.status === 'completed' || selectedRequest.status === 'rejected'}
                   >
                     Aprobar
                   </Button>
