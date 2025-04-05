@@ -367,7 +367,7 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
               
               <div className="mt-8 bg-white rounded-lg p-4 border border-blue-100">
                 <div>
-                  <img src="/images/banner-sucursal.png" alt="Sucursal Virtual" className="w-full h-auto rounded-lg object-cover mb-3" />
+                  <img src="/images/sucursal-virtual-banner.png" alt="Sucursal Virtual" className="w-full h-auto rounded-lg object-cover mb-3" />
                   <h3 className="text-[#009ADE] font-medium text-center">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
                   <p className="text-center text-sm mt-2">Conócela registrándote aquí.</p>
                 </div>
