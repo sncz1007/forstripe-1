@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80">
+  <rect width="200" height="80" fill="#fff" rx="4" ry="4"/>
+  <g fill="#00AEEF">
+    <path d="M20 20h160v40H20z" fill-opacity="0"/>
+    <text x="30" y="50" font-family="Arial" font-size="28" font-weight="bold">FORUM</text>
+  </g>
+</svg>
