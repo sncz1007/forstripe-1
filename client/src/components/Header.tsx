@@ -1,4 +1,5 @@
 import React from 'react';
+import { ForumLogo, SalvumLogo } from '@/lib/images';
 
 const Header: React.FC = () => {
   return (
@@ -6,10 +7,10 @@ const Header: React.FC = () => {
       <div className="container mx-auto">
         <div className="flex items-center h-[48px] pl-6">
           <a href="/" className="mr-4">
-            <img src="/images/forum.png" width="60" alt="Forum" title="Forum" />
+            <img src={`data:image/png;base64,${ForumLogo}`} width="60" alt="Forum" title="Forum" />
           </a>
           <a href="/" className="mr-4 border-r border-gray-300 pr-3">
-            <img src="/images/salvum-logo.png" width="80" alt="Salvum" title="Salvum" />
+            <img src={`data:image/png;base64,${SalvumLogo}`} width="80" alt="Salvum" title="Salvum" />
           </a>
           <h1 className="text-xl text-[#00AEEF] font-light m-0">
             Pago Express

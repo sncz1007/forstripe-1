@@ -1,4 +1,5 @@
 import React from 'react';
+import { AddressIcon, ContactIcon, TimeIcon } from '@/lib/images';
 
 const Footer: React.FC = () => {
   return (
@@ -7,7 +8,7 @@ const Footer: React.FC = () => {
         <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="flex items-center">
             <span className="mr-3">
-              <img src="/images/direccion.png" alt="Dirección" width="24" />
+              <img src={`data:image/png;base64,${AddressIcon}`} alt="Dirección" width="24" />
             </span>
             <div>
               <small className="block text-xs font-semibold text-gray-600">Dirección</small>
@@ -19,7 +20,7 @@ const Footer: React.FC = () => {
           
           <div className="flex items-center">
             <span className="mr-3">
-              <img src="/images/call-center.png" alt="Contact Center" width="24" />
+              <img src={`data:image/png;base64,${ContactIcon}`} alt="Contact Center" width="24" />
             </span>
             <div>
               <small className="block text-xs font-semibold text-gray-600">Contact Center</small>
@@ -33,7 +34,7 @@ const Footer: React.FC = () => {
           
           <div className="flex items-center">
             <span className="mr-3">
-              <img src="/images/time.png" alt="Atención presencial" width="24" />
+              <img src={`data:image/png;base64,${TimeIcon}`} alt="Atención presencial" width="24" />
             </span>
             <div>
               <small className="block text-xs font-semibold text-gray-600">Atención presencial</small>

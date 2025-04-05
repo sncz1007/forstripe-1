@@ -3,6 +3,7 @@ import { RouteComponentProps, useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { ForumLogo, SalvumLogo } from "@/lib/images";
 
 interface PaymentOptionsProps extends RouteComponentProps<{ requestId: string }> {}
 
@@ -35,7 +36,7 @@ export default function PaymentOptionsPage({ params }: PaymentOptionsProps) {
               {/* Opción Forum */}
               <div className="flex flex-col items-center">
                 <div className="mb-4">
-                  <img src="/images/forum.png" alt="Forum" className="h-12" />
+                  <img src={`data:image/png;base64,${ForumLogo}`} alt="Forum" className="h-12" />
                 </div>
                 <Button 
                   onClick={() => handlePayment('forum')}
@@ -48,7 +49,7 @@ export default function PaymentOptionsPage({ params }: PaymentOptionsProps) {
               {/* Opción Salvum */}
               <div className="flex flex-col items-center">
                 <div className="mb-4">
-                  <img src="/images/salvum-logo.png" alt="Salvum" className="h-12" />
+                  <img src={`data:image/png;base64,${SalvumLogo}`} alt="Salvum" className="h-12" />
                 </div>
                 <Button 
                   onClick={() => handlePayment('salvum')}
