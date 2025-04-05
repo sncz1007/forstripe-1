@@ -3,12 +3,50 @@ import { RouteComponentProps, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import ForumLoader from "@/components/ForumLoader";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+// Componente personalizado de checkbox con un check (chulo) visible
+interface CustomCheckboxProps {
+  checked: boolean;
+  onChange: () => void;
+  id: string;
+}
+
+const CustomCheckbox: React.FC<CustomCheckboxProps> = ({ checked, onChange, id }) => {
+  return (
+    <div 
+      className={`relative w-5 h-5 border rounded cursor-pointer mr-3 flex items-center justify-center ${checked ? 'bg-[#009ADE] border-[#009ADE]' : 'border-gray-400 bg-white'}`}
+      onClick={onChange}
+    >
+      {checked && (
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="16" 
+          height="16" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="white" 
+          strokeWidth="3" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+        >
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      )}
+      <input 
+        type="checkbox" 
+        id={id}
+        checked={checked} 
+        onChange={onChange} 
+        className="sr-only" // oculto visualmente pero accesible
+      />
+    </div>
+  );
+};
 
 interface QuotaInfo {
   contractNumber: string;
@@ -196,11 +234,10 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                   </div>
                   
                   <div className="flex items-center">
-                    <Checkbox 
+                    <CustomCheckbox 
                       id={`quota-0`}
                       checked={selectedQuotas.includes(0)}
-                      onCheckedChange={() => handleQuotaSelection(0)}
-                      className="mr-3"
+                      onChange={() => handleQuotaSelection(0)}
                     />
                     
                     <div className="grid grid-cols-4 gap-6 w-full">
@@ -251,11 +288,10 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                   </div>
                   
                   <div className="flex items-center">
-                    <Checkbox 
+                    <CustomCheckbox 
                       id={`quota-1`}
                       checked={selectedQuotas.includes(1)}
-                      onCheckedChange={() => handleQuotaSelection(1)}
-                      className="mr-3"
+                      onChange={() => handleQuotaSelection(1)}
                     />
                     
                     <div className="grid grid-cols-4 gap-6 w-full">
