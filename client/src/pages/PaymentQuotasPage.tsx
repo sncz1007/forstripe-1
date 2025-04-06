@@ -482,6 +482,27 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       return;
     }
     
+    // Guardar la información seleccionada en sessionStorage
+    if (userData) {
+      const selectedQuotasInfo = selectedQuotas.map(index => userData.quotas[index]);
+      const totalAmount = selectedQuotasInfo.reduce((sum, quota) => {
+        const amount = parseFloat(quota.totalAmount.replace(/[$,.]/g, ''));
+        return sum + amount;
+      }, 0);
+      
+      const paymentInfo = {
+        clientName: userData.clientName,
+        clientRut: userData.clientRut,
+        paymentDate: new Date().toLocaleDateString('es-CL'),
+        paymentTime: new Date().toLocaleTimeString('es-CL'),
+        totalAmount: totalAmount,
+        quotas: selectedQuotasInfo,
+        operationCode: `FORUM-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`
+      };
+      
+      sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
+    }
+    
     // Ir a la siguiente etapa (simulación de procesamiento de pago)
     setIsLoading(true);
     
