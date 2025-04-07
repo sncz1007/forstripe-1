@@ -17,7 +17,7 @@ function Router() {
     <Switch>
       <Route path="/" component={PaymentPage} />
       <Route path="/payment/:requestId" component={LoadingPage} />
-      <Route path="/payment-options/:requestId" component={PaymentOptionsPage} />
+      <Route path="/payment-options" component={PaymentOptionsPage} />
       <Route path="/payment-quotas" component={PaymentQuotasPage} />
       <Route path="/payment-success" component={PaymentSuccessPage} />
       <Route path="/admin" component={AdminPanel} />

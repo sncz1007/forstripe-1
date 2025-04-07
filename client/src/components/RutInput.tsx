@@ -67,13 +67,13 @@ export default function RutInput() {
       }
       
       const result = await response.json();
-      console.log("Solicitud creada exitosamente, ID:", result.id);
+      console.log("Solicitud creada exitosamente, ID:", result.requestId);
       
       // Guardar el ID de la solicitud en sessionStorage
-      sessionStorage.setItem('paymentRequestId', result.id);
+      sessionStorage.setItem('paymentRequestId', result.requestId);
       
       // Verificar que se ha creado correctamente
-      const verifyResponse = await fetch(`/api/payment-request/${result.id}`);
+      const verifyResponse = await fetch(`/api/payment-request/${result.requestId}`);
       if (!verifyResponse.ok) {
         throw new Error("Error al verificar la solicitud");
       }

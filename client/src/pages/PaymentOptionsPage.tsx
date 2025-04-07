@@ -4,18 +4,18 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
-interface PaymentOptionsProps extends RouteComponentProps<{ requestId: string }> {}
+interface PaymentOptionsProps extends RouteComponentProps {}
 
-export default function PaymentOptionsPage({ params }: PaymentOptionsProps) {
-  const requestId = params.requestId;
+export default function PaymentOptionsPage(_props: PaymentOptionsProps) {
+  const requestId = sessionStorage.getItem('paymentRequestId');
   const [, setLocation] = useLocation();
 
   const handlePayment = (provider: string) => {
     console.log(`Procesando pago con ${provider}, ID de solicitud: ${requestId}`);
     // Guardar el proveedor seleccionado en sessionStorage para referencia futura
     sessionStorage.setItem('paymentProvider', provider);
-    // Redirigir a la página de carga
-    setLocation(`/payment/${requestId}`);
+    // Redirigir a la página de carga/payment-quotas
+    setLocation('/payment-quotas');
   };
 
   return (
