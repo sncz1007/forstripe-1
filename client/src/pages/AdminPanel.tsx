@@ -470,21 +470,36 @@ export default function AdminPanel(_props: RouteComponentProps) {
                     value={response}
                     onChange={(e) => setResponse(e.target.value)}
                     className="w-full h-72"
-                    placeholder={`Ingrese la información en este formato:
+                    placeholder={`Cuotas a pagar
+Contrato
+744530
+PAC/PAT Activo
 
-Estimado/a NOMBRE_CLIENTE 12.345.678-9
+Cuota N°6
+Cuota
+Interés Mora
+Total Cuota
+Venció el 05/04/2025
+$1.358.270
+$0
+$1.358.270
 
-Contrato: NUMERO_CONTRATO
-Patente: XX-XX-XX
-Vehículo: TIPO_VEHICULO
+Contrato
+1210457
+PAC/PAT Activo
+
+El pago vía PAC/PAT puede tardar hasta 5 días hábiles en verse reflejado.
+
+** Si el cargo se hubiera realizado dentro de la fecha de pago correspondiente, no se aplicará el interés por mora señalado
 
 Cuota N°3
-Vence en 10 días
-Monto: $100.000
-Interés: $0
-Total: $100.000
-
-Para realizar el pago, por favor acceda al siguiente enlace: https://pago.ejemplo.cl`}
+Cuota
+Interés Mora
+Total Cuota
+Vence en 27 días
+$917.539
+$0
+$917.539`}
                   />
                 </div>
                 

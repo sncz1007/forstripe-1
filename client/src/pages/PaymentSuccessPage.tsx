@@ -55,12 +55,45 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
     }).format(amount);
   };
   
-  // Si no hay información de pago, usar valores predeterminados
+  // Si no hay información de pago, intentar recuperarla del sessionStorage o usar valores predeterminados
+  useEffect(() => {
+    const rutValue = sessionStorage.getItem('rutValue');
+    if (!paymentInfo && rutValue) {
+      // Crear valores predeterminados basados en el RUT
+      const now = new Date();
+      const defaultPaymentInfo: PaymentInfo = {
+        clientName: sessionStorage.getItem('clientName') || "CRISTIAN SERVANDO VALENZUELA BUSTOS",
+        clientRut: rutValue,
+        paymentDate: now.toLocaleDateString('es-CL'),
+        paymentTime: now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+        totalAmount: 2275809,
+        operationCode: `FORUM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`,
+        quotas: [
+          {
+            contractNumber: "744530",
+            licensePlate: "XX-XX-XX",
+            vehicleType: "PEUGEOT XXXXX 2025",
+            totalAmount: "$1.358.270",
+            quotaNumber: "6"
+          },
+          {
+            contractNumber: "1210457",
+            licensePlate: "XX-XX-XX",
+            vehicleType: "CHEVROLET XXXXX 2023",
+            totalAmount: "$917.539",
+            quotaNumber: "3"
+          }
+        ]
+      };
+      setPaymentInfo(defaultPaymentInfo);
+    }
+  }, [paymentInfo]);
+
   const clientName = paymentInfo?.clientName || "CRISTIAN SERVANDO VALENZUELA BUSTOS";
-  const clientRut = paymentInfo?.clientRut || "17.546.765-3";
-  const paymentDate = paymentInfo?.paymentDate || "01/04/2025";
-  const paymentTime = paymentInfo?.paymentTime || "10:15 AM";
-  const operationCode = paymentInfo?.operationCode || "FORUM-2025040101";
+  const clientRut = paymentInfo?.clientRut || sessionStorage.getItem('rutValue') || "17.546.765-3";
+  const paymentDate = paymentInfo?.paymentDate || new Date().toLocaleDateString('es-CL');
+  const paymentTime = paymentInfo?.paymentTime || new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  const operationCode = paymentInfo?.operationCode || `FORUM-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
   const totalAmount = paymentInfo ? formatCurrency(paymentInfo.totalAmount) : "$2.275.809";
   
   return (

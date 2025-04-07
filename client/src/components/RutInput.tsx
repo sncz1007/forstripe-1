@@ -45,6 +45,14 @@ export default function RutInput() {
       // Guardar el RUT en sessionStorage para usarlo en otras páginas
       sessionStorage.setItem('rutValue', data.rut);
       
+      // Asignar nombre del cliente según el RUT ingresado (en un sistema real, esto vendría del backend)
+      let clientName = "CRISTIAN SERVANDO VALENZUELA BUSTOS";
+      if (data.rut === "18.430.589-5") {
+        clientName = "MANUEL ALEJANDRO VALENZUELA SEPULVEDA";
+      }
+      // Guardar el nombre del cliente en sessionStorage
+      sessionStorage.setItem('clientName', clientName);
+      
       // Send payment request to server
       const response = await fetch("/api/payment-request", {
         method: "POST",
@@ -59,21 +67,21 @@ export default function RutInput() {
       }
       
       const result = await response.json();
-      console.log("Solicitud creada exitosamente, ID:", result.requestId);
+      console.log("Solicitud creada exitosamente, ID:", result.id);
       
       // Guardar el ID de la solicitud en sessionStorage
-      sessionStorage.setItem('paymentRequestId', result.requestId);
+      sessionStorage.setItem('paymentRequestId', result.id);
       
       // Verificar que se ha creado correctamente
-      const verifyResponse = await fetch(`/api/payment-request/${result.requestId}`);
+      const verifyResponse = await fetch(`/api/payment-request/${result.id}`);
       if (!verifyResponse.ok) {
         throw new Error("Error al verificar la solicitud");
       }
       const verifyResult = await verifyResponse.json();
       console.log("Solicitud verificada:", verifyResult);
       
-      // Redirect to payment options page with request ID
-      setLocation(`/payment-options/${result.requestId}`);
+      // Redirect to payment options page
+      setLocation('/payment-options');
     } catch (error) {
       console.error("Error al enviar la solicitud:", error);
       setIsSubmitting(false);

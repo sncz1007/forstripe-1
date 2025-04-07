@@ -87,8 +87,8 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       console.log("Líneas:", lines);
       
       // Inicializar los valores predeterminados
-      let clientName = "Usuario";
-      let clientRut = "";
+      let clientName = "CRISTIAN SERVANDO VALENZUELA BUSTOS";
+      let clientRut = sessionStorage.getItem('rutValue') || "17.546.765-3";
       let contractNumber = "000000";
       let licensePlate = "XX-XX-XX";
       let vehicleType = "AUTOMÓVIL";
@@ -118,40 +118,73 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
             break;
           }
         }
+        
+        // Intentar extraer el nombre si hay una línea que empieza con "Estimado/a" o similar
+        for (const line of lines) {
+          if (line.includes("Estimado/a") || line.includes("Estimado") || line.includes("Cliente:")) {
+            const nameMatch = line.match(/(?:Estimado\/a|Estimado|Cliente:)\s+([A-ZÁÉÍÓÚÑ\s]+)/i);
+            if (nameMatch && nameMatch[1]) {
+              clientName = nameMatch[1].trim();
+              console.log("Nombre extraído (alt):", clientName);
+              break;
+            }
+          }
+        }
       }
       
       // Buscar información de contrato y vehículo en cada línea
       for (const line of lines) {
-        // Buscar contrato
-        if (line.includes("Contrato:")) {
-          const match = line.match(/Contrato:\s*([A-Z0-9]+)/);
+        // Buscar contrato con varios formatos posibles
+        if (line.includes("Contrato:") || line.includes("Contrato")) {
+          const match = line.match(/Contrato:?\s*([A-Z0-9]+)/);
           if (match) {
             contractNumber = match[1].trim();
             console.log("Contrato encontrado:", contractNumber);
+          } else if (line.trim() === "Contrato" && lines.length > lines.indexOf(line) + 1) {
+            // Si la línea solo dice "Contrato", el número podría estar en la siguiente línea
+            const nextLine = lines[lines.indexOf(line) + 1];
+            if (nextLine && !nextLine.includes(":")) {
+              contractNumber = nextLine.trim();
+              console.log("Contrato encontrado (siguiente línea):", contractNumber);
+            }
           }
         }
         
-        // Buscar patente
-        if (line.includes("Patente:")) {
-          const match = line.match(/Patente:\s*([A-Z0-9•-]+)/);
+        // Buscar patente con varios formatos posibles
+        if (line.includes("Patente:") || line.includes("Patente")) {
+          const match = line.match(/Patente:?\s*([A-Z0-9•-]+)/);
           if (match) {
             licensePlate = match[1].trim();
             console.log("Patente encontrada:", licensePlate);
+          } else if (line.trim() === "Patente" && lines.length > lines.indexOf(line) + 1) {
+            // Si la línea solo dice "Patente", la patente podría estar en la siguiente línea
+            const nextLine = lines[lines.indexOf(line) + 1];
+            if (nextLine && !nextLine.includes(":")) {
+              licensePlate = nextLine.trim();
+              console.log("Patente encontrada (siguiente línea):", licensePlate);
+            }
           }
         }
         
-        // Buscar vehículo
-        if (line.includes("Vehículo:")) {
-          const match = line.match(/Vehículo:\s*(.+)/);
+        // Buscar vehículo con varios formatos posibles
+        if (line.includes("Vehículo:") || line.includes("Vehículo")) {
+          const match = line.match(/Vehículo:?\s*(.+)/);
           if (match) {
             vehicleType = match[1].trim();
             console.log("Vehículo encontrado:", vehicleType);
+          } else if (line.trim() === "Vehículo" && lines.length > lines.indexOf(line) + 1) {
+            // Si la línea solo dice "Vehículo", el tipo podría estar en la siguiente línea
+            const nextLine = lines[lines.indexOf(line) + 1];
+            if (nextLine && !nextLine.includes(":")) {
+              vehicleType = nextLine.trim();
+              console.log("Vehículo encontrado (siguiente línea):", vehicleType);
+            }
           }
         }
         
         // Buscar número de cuota
-        if (line.includes("Cuota N°")) {
-          const match = line.match(/Cuota N°(\d+)/);
+        if (line.includes("Cuota N°") || line.match(/Cuota\s+N[°o]?\s*\d+/)) {
+          const match = line.match(/Cuota\s+N[°o]?\s*(\d+)/);
           if (match) {
             quotaNumber = match[1];
             console.log("Número de cuota:", quotaNumber);
@@ -159,38 +192,68 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         }
         
         // Buscar días hasta vencimiento
-        if (line.includes("Vence en")) {
-          const match = line.match(/Vence en\s+(\d+)\s+días?/);
+        if (line.includes("Vence en") || line.includes("Vence")) {
+          const match = line.match(/Vence\s+en\s+(\d+)\s+días?/);
           if (match) {
             daysUntilDue = parseInt(match[1]);
             console.log("Días hasta vencimiento:", daysUntilDue);
           }
         }
         
-        // Buscar monto de cuota
-        if (line.includes("Monto:")) {
-          const match = line.match(/Monto:\s*\$([0-9.]+)/);
-          if (match) {
-            quotaAmount = "$" + match[1];
-            console.log("Monto de cuota:", quotaAmount);
+        // Buscar importes monetarios de cuota, interés y total
+        if (line.includes("$")) {
+          // Buscar monto de cuota
+          if (line.toLowerCase().includes("monto") || line.toLowerCase().includes("cuota")) {
+            const match = line.match(/\$\s*([0-9.,]+)/);
+            if (match) {
+              quotaAmount = "$" + match[1];
+              console.log("Monto de cuota:", quotaAmount);
+            }
           }
-        }
-        
-        // Buscar interés
-        if (line.includes("Interés:")) {
-          const match = line.match(/Interés:\s*\$([0-9.]+)/);
-          if (match) {
-            interestAmount = "$" + match[1];
-            console.log("Interés:", interestAmount);
+          
+          // Buscar interés
+          else if (line.toLowerCase().includes("interés")) {
+            const match = line.match(/\$\s*([0-9.,]+)/);
+            if (match) {
+              interestAmount = "$" + match[1];
+              console.log("Interés:", interestAmount);
+            }
           }
-        }
-        
-        // Buscar total
-        if (line.includes("Total:")) {
-          const match = line.match(/Total:\s*\$([0-9.]+)/);
-          if (match) {
-            totalAmount = "$" + match[1];
-            console.log("Total:", totalAmount);
+          
+          // Buscar total
+          else if (line.toLowerCase().includes("total")) {
+            const match = line.match(/\$\s*([0-9.,]+)/);
+            if (match) {
+              totalAmount = "$" + match[1];
+              console.log("Total:", totalAmount);
+            }
+          }
+          
+          // Intentar adivinar el tipo de importe por su posición después de etiquetas
+          else {
+            const lineIdx = lines.indexOf(line);
+            if (lineIdx > 0) {
+              const prevLine = lines[lineIdx - 1].toLowerCase();
+              if (prevLine.includes("cuota") && !prevLine.includes("total")) {
+                const match = line.match(/\$\s*([0-9.,]+)/);
+                if (match) {
+                  quotaAmount = "$" + match[1];
+                  console.log("Monto de cuota (inferido):", quotaAmount);
+                }
+              } else if (prevLine.includes("interés")) {
+                const match = line.match(/\$\s*([0-9.,]+)/);
+                if (match) {
+                  interestAmount = "$" + match[1];
+                  console.log("Interés (inferido):", interestAmount);
+                }
+              } else if (prevLine.includes("total")) {
+                const match = line.match(/\$\s*([0-9.,]+)/);
+                if (match) {
+                  totalAmount = "$" + match[1];
+                  console.log("Total (inferido):", totalAmount);
+                }
+              }
+            }
           }
         }
       }
