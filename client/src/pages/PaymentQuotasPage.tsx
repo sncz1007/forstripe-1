@@ -108,6 +108,10 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         clientRut = nameRutMatch[2].trim();
         console.log("Nombre extraído:", clientName);
         console.log("RUT extraído:", clientRut);
+        
+        // Guardar en sessionStorage para uso posterior
+        sessionStorage.setItem('clientName', clientName);
+        sessionStorage.setItem('rutValue', clientRut);
       } else {
         // Buscar RUT en cualquier línea
         for (const line of lines) {
@@ -115,6 +119,8 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
           if (rutMatch) {
             clientRut = rutMatch[1];
             console.log("RUT extraído (alt):", clientRut);
+            // Guardar el RUT en sessionStorage
+            sessionStorage.setItem('rutValue', clientRut);
             break;
           }
         }
@@ -126,6 +132,8 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
             if (nameMatch && nameMatch[1]) {
               clientName = nameMatch[1].trim();
               console.log("Nombre extraído (alt):", clientName);
+              // Guardar el nombre en sessionStorage
+              sessionStorage.setItem('clientName', clientName);
               break;
             }
           }

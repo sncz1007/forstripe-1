@@ -470,7 +470,9 @@ export default function AdminPanel(_props: RouteComponentProps) {
                     value={response}
                     onChange={(e) => setResponse(e.target.value)}
                     className="w-full h-72"
-                    placeholder={`Cuotas a pagar
+                    placeholder={`Estimado/a CRISTIAN SERVANDO VALENZUELA BUSTOS 17.546.765-3
+
+Cuotas a pagar
 Contrato
 744530
 PAC/PAT Activo

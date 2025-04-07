@@ -14,8 +14,8 @@ export default function PaymentOptionsPage(_props: PaymentOptionsProps) {
     console.log(`Procesando pago con ${provider}, ID de solicitud: ${requestId}`);
     // Guardar el proveedor seleccionado en sessionStorage para referencia futura
     sessionStorage.setItem('paymentProvider', provider);
-    // Redirigir a la página de carga/payment-quotas
-    setLocation('/payment-quotas');
+    // Redirigir a la página de carga donde espera la aprobación del administrador
+    setLocation(`/payment/${requestId}`);
   };
 
   return (
