@@ -20,6 +20,7 @@ interface PaymentInfo {
     vehicleType: string;
     totalAmount: string;
     quotaNumber: string;
+    dueDate?: string; // Fecha de vencimiento o estado de la cuota
   }>;
 }
 
@@ -55,46 +56,23 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
     }).format(amount);
   };
   
-  // Si no hay información de pago, intentar recuperarla del sessionStorage o usar valores predeterminados
+  // Si no hay información de pago, mostrar mensaje de advertencia
   useEffect(() => {
     const rutValue = sessionStorage.getItem('rutValue');
     if (!paymentInfo && rutValue) {
-      // Crear valores predeterminados basados en el RUT
-      const now = new Date();
-      const defaultPaymentInfo: PaymentInfo = {
-        clientName: sessionStorage.getItem('clientName') || "CRISTIAN SERVANDO VALENZUELA BUSTOS",
-        clientRut: rutValue,
-        paymentDate: now.toLocaleDateString('es-CL'),
-        paymentTime: now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
-        totalAmount: 2275809,
-        operationCode: `FORUM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`,
-        quotas: [
-          {
-            contractNumber: "744530",
-            licensePlate: "XX-XX-XX",
-            vehicleType: "PEUGEOT XXXXX 2025",
-            totalAmount: "$1.358.270",
-            quotaNumber: "6"
-          },
-          {
-            contractNumber: "1210457",
-            licensePlate: "XX-XX-XX",
-            vehicleType: "CHEVROLET XXXXX 2023",
-            totalAmount: "$917.539",
-            quotaNumber: "3"
-          }
-        ]
-      };
-      setPaymentInfo(defaultPaymentInfo);
+      console.warn("No se encontró información de pago válida en sessionStorage");
+      // No establecemos valores predeterminados, permitiremos que los valores reales
+      // pasen de la página anterior
     }
   }, [paymentInfo]);
 
-  const clientName = paymentInfo?.clientName || "CRISTIAN SERVANDO VALENZUELA BUSTOS";
-  const clientRut = paymentInfo?.clientRut || sessionStorage.getItem('rutValue') || "17.546.765-3";
+  // Usamos los datos de pago del sessionStorage sin valores predeterminados
+  const clientName = paymentInfo?.clientName || "";
+  const clientRut = paymentInfo?.clientRut || sessionStorage.getItem('rutValue') || "";
   const paymentDate = paymentInfo?.paymentDate || new Date().toLocaleDateString('es-CL');
   const paymentTime = paymentInfo?.paymentTime || new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-  const operationCode = paymentInfo?.operationCode || `FORUM-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-  const totalAmount = paymentInfo ? formatCurrency(paymentInfo.totalAmount) : "$2.275.809";
+  const operationCode = paymentInfo?.operationCode || "";
+  const totalAmount = paymentInfo ? formatCurrency(paymentInfo.totalAmount) : "";
   
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -209,6 +187,20 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
                               <span>Vehículo:</span>
                               <span className="font-medium">{quota.vehicleType}</span>
                             </div>
+                            <div className="flex justify-between">
+                              <span>Patente:</span>
+                              <span className="font-medium">{quota.licensePlate}</span>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span>Monto:</span>
+                              <span className="font-medium text-green-600">{quota.totalAmount}</span>
+                            </div>
+                            {quota.dueDate && (
+                              <div className="flex justify-between mt-1">
+                                <span>Estado:</span>
+                                <span className="font-medium text-blue-600">{quota.dueDate}</span>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

@@ -569,6 +569,10 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         return sum + amount;
       }, 0);
       
+      // Registrar en la consola para depuración
+      console.log("UserData:", userData);
+      console.log("SelectedQuotasInfo:", selectedQuotasInfo);
+      
       const paymentInfo = {
         clientName: userData.clientName,
         clientRut: userData.clientRut,
@@ -580,10 +584,15 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
           licensePlate: quota.licensePlate,
           vehicleType: quota.vehicleType,
           totalAmount: quota.totalAmount,
-          quotaNumber: quota.quotaNumber
+          quotaNumber: quota.quotaNumber,
+          dueDate: quota.dueDate || (quota.daysUntilDue === 0 ? 
+                                    "Venció el 05/04/2025" : 
+                                    `Vence en ${quota.daysUntilDue} ${quota.daysUntilDue === 1 ? 'día' : 'días'}`)
         })),
         operationCode: `FORUM-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`
       };
+      
+      console.log("Información de pago generada:", paymentInfo);
       
       sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
     }
