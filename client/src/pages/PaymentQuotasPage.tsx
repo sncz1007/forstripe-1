@@ -58,6 +58,7 @@ interface QuotaInfo {
   interestAmount: string;
   totalAmount: string;
   daysUntilDue: number;
+  dueDate?: string; // Para almacenar la fecha exacta de vencimiento o estado
 }
 
 interface UserInfo {
@@ -78,13 +79,20 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   const [userData, setUserData] = useState<UserInfo | null>(null);
   
   // Función para extraer datos desde la respuesta del administrador
-  const extractUserDataFromResponse = (responseText: string) => {
+  const extractUserDataFromResponse = (responseText: string): UserInfo | null => {
     try {
       console.log("Analizando respuesta:", responseText);
       
+      if (!responseText) return null;
+      
       // Separar el texto en líneas para facilitar el procesamiento
-      const lines = responseText.split(/\r?\n/);
+      const lines = responseText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
       console.log("Líneas:", lines);
+      
+      if (lines.length === 0) {
+        console.log("No hay líneas para procesar en la respuesta");
+        return null;
+      }
       
       // Inicializar los valores predeterminados
       let clientName = "CRISTIAN SERVANDO VALENZUELA BUSTOS";
