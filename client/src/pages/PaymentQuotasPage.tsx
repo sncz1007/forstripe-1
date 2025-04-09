@@ -668,20 +668,26 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         if (data.paymentLink) {
           console.log("Redirigiendo al enlace de pago de Mercado Pago:", data.paymentLink);
           
-          // Si el enlace es interno (apunta a payment-success), usar setLocation para navegación interna
-          if (data.paymentLink.includes('/payment-success')) {
-            console.log("Detectado enlace interno, usando navegación de Wouter");
-            setIsLoading(false);
-            setLocation('/payment-success');
+          // Siempre almacenar la información de pago antes de cualquier redirección
+          sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
+          sessionStorage.setItem('preferenceId', data.preferenceId || '');
+
+          // Si el enlace es interno (apunta a payment-success o simula Mercado Pago), usar setLocation para navegación interna
+          if (data.paymentLink.includes('/payment-success') || data.paymentLink.includes('simulation=true')) {
+            console.log("Detectado enlace interno o simulación, usando navegación de Wouter");
+            
+            // Simulamos un pequeño retraso para dar sensación de procesamiento
+            setIsLoading(true);
+            setTimeout(() => {
+              setIsLoading(false);
+              // Extraer el path sin el dominio en caso de URLs completas
+              const url = new URL(data.paymentLink, window.location.origin);
+              // Navegamos a la ruta interna (payment-success) con los parámetros adecuados
+              setLocation(url.pathname + url.search);
+            }, 1000);
           } else {
-            // Si es un enlace externo de Mercado Pago, usar redirección de navegador
+            // Si es un enlace externo real de Mercado Pago, usar redirección de navegador
             console.log("Redirigiendo a enlace externo de Mercado Pago");
-            
-            // Almacenar información de pago antes de redirigir
-            sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
-            sessionStorage.setItem('preferenceId', data.preferenceId || '');
-            
-            // Redirigir al checkout de Mercado Pago
             window.location.href = data.paymentLink;
           }
         } else {

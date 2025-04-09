@@ -27,24 +27,27 @@ const mercadoPagoSimulator = {
       // Generar un ID único para la preferencia
       const preferenceId = `TEST-PREF-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
       
-      // Construir la URL de pago simulada
+      // Para pruebas, usaremos una redirección interna en lugar de ir a Mercado Pago
+      // URL de pago simulada (esta URL se verá en el navegador pero no se intentará acceder)
       const sandboxUrl = `https://www.mercadopago.cl/checkout/v1/redirect?pref_id=${preferenceId}`;
       
-      // URL fallback para redirección interna
-      const internalUrl = preference.back_urls.success;
+      // URL para redirección interna - esta es la que realmente usaremos para la simulación
+      const internalUrl = `${preference.back_urls.success}?simulation=true&prefId=${preferenceId}`;
       
       // Construir respuesta similar a la de Mercado Pago
       return {
         status: 201,
         body: {
           id: preferenceId,
-          init_point: sandboxUrl, // Usamos el enlace sandbox como principal para mejor experiencia
+          // Para simulación, redirigimos directamente al success path con un parámetro de simulación
+          init_point: internalUrl, 
           sandbox_init_point: sandboxUrl,
           // Agregamos información adicional para depuración
           internal_url: internalUrl,
           debug_info: {
             test_mode: true,
-            simulation: true
+            simulation: true,
+            payment_status: "approved"
           }
         }
       };
