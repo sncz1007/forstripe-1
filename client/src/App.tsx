@@ -9,6 +9,7 @@ import AdminQuotasPanel from "@/pages/AdminQuotasPanel";
 import PaymentOptionsPage from "@/pages/PaymentOptionsPage";
 import PaymentQuotasPage from "@/pages/PaymentQuotasPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+import PaymentBridge from "@/pages/PaymentBridge";
 import NotFound from "@/pages/not-found";
 import React from "react";
 
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/payment/:requestId" component={LoadingPage} />
       <Route path="/payment-options" component={PaymentOptionsPage} />
       <Route path="/payment-quotas" component={PaymentQuotasPage} />
+      <Route path="/payment-bridge" component={PaymentBridge} />
       <Route path="/payment-success" component={PaymentSuccessPage} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/admin-quotas" component={AdminQuotasPanel} />

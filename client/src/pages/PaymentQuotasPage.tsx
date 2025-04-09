@@ -600,16 +600,19 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
     
     // Guardar la información seleccionada en sessionStorage
     if (userData) {
+      // Mostrar loading spinner
+      setIsLoading(true);
+      
+      // Recolectar información de las cuotas seleccionadas
       const selectedQuotasInfo = selectedQuotas.map(index => userData.quotas[index]);
+      
+      // Calcular el monto total
       const totalAmount = selectedQuotasInfo.reduce((sum, quota) => {
         const amount = parseFloat(quota.totalAmount.replace(/[$.,]/g, '').replace(/,/g, '.'));
         return sum + amount;
       }, 0);
       
-      // Registrar en la consola para depuración
-      console.log("UserData:", userData);
-      console.log("SelectedQuotasInfo:", selectedQuotasInfo);
-      
+      // Crear objeto con la información de pago
       const paymentInfo = {
         clientName: userData.clientName,
         clientRut: userData.clientRut,
@@ -631,131 +634,14 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       
       console.log("Información de pago generada:", paymentInfo);
       
+      // Guardar la información en sessionStorage
       sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
       
-      // Preparar las cuotas para enviar a Mercado Pago
-      const cuotasParaMercadoPago = selectedQuotasInfo.map(quota => {
-        console.log(`Procesando cuota original: ${quota.quotaNumber}, monto: '${quota.totalAmount}'`);
-        
-        // Convertir el string de formato monetario chileno a un número sin decimales
-        // Primero, eliminamos el símbolo de peso '$' si existe
-        let montoLimpio = quota.totalAmount.replace('$', '').trim();
-        
-        // Luego removemos los puntos que son separadores de miles en formato chileno
-        montoLimpio = montoLimpio.replace(/\./g, '');
-        
-        // Si hay coma decimal, la convertimos a punto
-        montoLimpio = montoLimpio.replace(',', '.');
-        
-        // Convertimos a número y multiplicamos por 100 para tener centavos (formato requerido por Mercado Pago)
-        let montoTotal = 0;
-        try {
-          const montoNumerico = parseFloat(montoLimpio);
-          if (isNaN(montoNumerico)) {
-            console.error(`Error al convertir monto limpio: '${montoLimpio}' de original: '${quota.totalAmount}'`);
-            montoTotal = 135926; // Valor de ejemplo para testing si falla la conversión
-          } else {
-            montoTotal = Math.round(montoNumerico * 100);
-          }
-        } catch (error) {
-          console.error(`Error al procesar monto: '${montoLimpio}' de original: '${quota.totalAmount}'`, error);
-          montoTotal = 135926; // Valor de ejemplo para testing si falla la conversión
-        }
-        
-        console.log(`Monto convertido para cuota ${quota.quotaNumber}: ${montoTotal} (centavos) de original: '${quota.totalAmount}'`);
-        
-        return {
-          // Información para Mercado Pago
-          description: `Cuota N° ${quota.quotaNumber} - Contrato ${quota.contractNumber}`,
-          quantity: 1,
-          total: montoTotal
-        };
-      });
-      
-      try {
-        setIsLoading(true);
-        console.log("Iniciando simulación de pago con Mercado Pago...");
-        
-        // Modo de desarrollo/prueba: simular directamente el proceso de pago
-        // En lugar de hacer la llamada al servidor, simplemente almacenamos los datos y pasamos a la siguiente pantalla
-        console.log("SIMULANDO PAGO: Guardando información en sessionStorage y redirigiendo...");
-        
-        // Almacenar información de pago en sessionStorage
-        sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
-        sessionStorage.setItem('preferenceId', `TEST-PREF-${Date.now()}`);
-        
-        // Simular procesamiento por un corto período y luego redirigir
-        setTimeout(() => {
-          setIsLoading(false);
-          setLocation('/payment-success?status=approved&simulation=true');
-        }, 1500);
-        
-        return; // Terminamos aquí en modo simulación
-        
-        /*
-        // NOTA: El código siguiente está desactivado temporalmente mientras usamos la simulación directa
-        // Este código se usaría para integración real con Mercado Pago
-        
-        console.log("Cuotas a enviar:", cuotasParaMercadoPago);
-        
-        // Obtener la URL base actual
-        const baseUrl = window.location.origin;
-        
-        // Enviar solicitud al backend para generar el enlace de pago con Mercado Pago
-        const response = await fetch(`${baseUrl}/generar-enlace`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ cuotas: cuotasParaMercadoPago })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error al generar enlace: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log("Respuesta recibida de Mercado Pago:", data);
-        
-        if (data.paymentLink) {
-          console.log("Redirigiendo al enlace de pago de Mercado Pago:", data.paymentLink);
-          
-          // Siempre almacenar la información de pago antes de cualquier redirección
-          sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
-          sessionStorage.setItem('preferenceId', data.preferenceId || '');
-
-          // Si el enlace es interno (apunta a payment-success o simula Mercado Pago), usar setLocation para navegación interna
-          if (data.paymentLink.includes('/payment-success') || data.paymentLink.includes('simulation=true')) {
-            console.log("Detectado enlace interno o simulación, usando navegación de Wouter");
-            
-            // Simulamos un pequeño retraso para dar sensación de procesamiento
-            setIsLoading(true);
-            setTimeout(() => {
-              setIsLoading(false);
-              // Extraer el path sin el dominio en caso de URLs completas
-              const url = new URL(data.paymentLink, window.location.origin);
-              // Navegamos a la ruta interna (payment-success) con los parámetros adecuados
-              setLocation(url.pathname + url.search);
-            }, 1000);
-          } else {
-            // Si es un enlace externo real de Mercado Pago, usar redirección de navegador
-            console.log("Redirigiendo a enlace externo de Mercado Pago");
-            window.location.href = data.paymentLink;
-          }
-        } else {
-          throw new Error("No se recibió un enlace de pago válido de Mercado Pago");
-        }
-        */
-      } catch (error) {
-        console.error("Error al procesar el pago con Mercado Pago:", error);
-        alert("Hubo un problema al generar el enlace de pago. Por favor, inténtelo de nuevo más tarde.");
-        setIsLoading(false);
-        
-        // Como fallback, si hay un error con Mercado Pago, continuamos con el flujo original
-        setTimeout(() => {
-          setLocation('/payment-success');
-        }, 1500);
-      }
+      // SOLUCIÓN SIMPLIFICADA:
+      // En lugar de intentar usar Mercado Pago, redireccionamos al PaymentBridge
+      // que simulará un proceso de pago y luego mostrará el éxito
+      console.log("Redireccionando al puente de pago...");
+      setLocation('/payment-bridge');
     }
   };
   
