@@ -1,0 +1,66 @@
+Prompt para depurar y solucionar el problema de generación del enlace de pago con Mercado Pago en Replit
+Abrir server.js
+Verificar logs
+console.log('Cuotas recibidas:', cuotas) después const { cuotas } = req.body
+console.log('Monto total calculado:', montoTotal) después const montoTotal = cuotas.reduce((sum, cuota) => sum + cuota.total, 0) / 100
+console.log('Preferencia enviada:', preference) antes const response = await mercadopago.preferences.create(preference)
+console.log('Respuesta de Mercado Pago:', response.body) después const response = await mercadopago.preferences.create(preference)
+console.error('Error al generar el enlace:', error) en catch
+Asegurar preferencia
+const preference = { items: [{ title: "Pago de Cuotas", quantity: 1, unit_price: montoTotal, currency_id: "CLP" }], back_urls: { success: "https://98856977-dfac-434c-829e-a30c7324196b-00-2aqs2tqhqe1if.riker.replit.dev/success", failure: "https://98856977-dfac-434c-829e-a30c7324196b-00-2aqs2tqhqe1if.riker.replit.dev/failure", pending: "https://98856977-dfac-434c-829e-a30c7324196b-00-2aqs2tqhqe1if.riker.replit.dev/pending" } }
+Confirmar montoTotal número válido
+Confirmar currency_id: "CLP"
+Hacer clic Run
+Abrir script.js
+Ajustar continuarPago
+Después const data = await response.json() agregar console.log('Respuesta del backend:', data)
+Cambiar if (data.paymentLink) { console.log('Redirigiendo a:', data.paymentLink) window.location.href = data.paymentLink } else { alert("No se recibió un enlace de pago válido: " + JSON.stringify(data)) }
+Terminal Replit
+curl -X POST "https://98856977-dfac-434c-829e-a30c7324196b-00-2aqs2tqhqe1if.riker.replit.dev/generar-enlace" -H "Content-Type: application/json" -d '{"cuotas":[{"quantity":1,"total":1359265}]}'
+Revisar respuesta
+Buscar { "paymentLink": "https://www.mercadopago.com/..." }
+Si { "error": "Error al generar el enlace" } revisar logs consola Replit
+Copiar paymentLink abrir navegador
+Probar flujo
+Pegar <textarea>
+CRISTIAN SERVANDO VALENZUELA BUSTOS
+17.546.765-3
+Cuotas a pagar
+Contrato
+744530
+PAC/PAT Activo
+El pago vía PAC/PAT puede tardar hasta 5 días hábiles en verse reflejado
+** Si el cargo se hubiera realizado dentro de la fecha de pago correspondiente, no se aplicará el interés por mora señalado
+Cuota N°6
+Cuota
+Interés Mora
+Total Cuota
+Venció el 05/04/2025
+$1.358.270
+$995
+$1.359.265
+Hacer clic Procesar
+Marcar checkbox cuota
+Hacer clic Continuar
+Revisar consola navegador F12 Console
+Buscar Respuesta del backend
+Buscar Redirigiendo a
+Si no paymentLink revisar error
+Revisar consola Replit
+Confirmar Cuotas recibidas
+Confirmar Monto total calculado
+Confirmar Preferencia enviada
+Buscar Respuesta de Mercado Pago
+Si error anotar mensaje Error al generar el enlace
+Verificar credenciales
+Ir Secrets
+Confirmar MERCADO_PAGO_ACCESS_TOKEN TEST-5277893847107576-060717-8b8af76c9393028101e81cda0680b05f-327992698
+Si incorrecto actualizar
+Si error 401 Unauthorized
+Ir Mercado Pago https://www.mercadopago.cl/developers/es/credentials
+Confirmar Access Token
+Actualizar MERCADO_PAGO_ACCESS_TOKEN Secrets
+Repetir flujo probar
+Verificar modo prueba
+Usar tarjeta prueba Mercado Pago Visa 5031 7557 3453 0604 CVV 123 Fecha 11/25
+Si error revisar logs pasos 10 11

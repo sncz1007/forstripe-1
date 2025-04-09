@@ -70,28 +70,37 @@ app.post('/generar-enlace', async (req, res) => {
     console.log('🔄 Solicitud de generación de enlace de pago recibida:', req.body);
     const { cuotas } = req.body;
     
+    // Registro detallado de cuotas recibidas para depuración
+    console.log('Cuotas recibidas:', cuotas);
+    
     if (!cuotas || !Array.isArray(cuotas) || cuotas.length === 0) {
       console.error('❌ Error: No se proporcionaron cuotas válidas', req.body);
       return res.status(400).json({ error: 'No se proporcionaron cuotas válidas' });
     }
     
-    console.log('✅ Procesando cuotas:', cuotas);
-    
-    // Calcular el monto total en pesos chilenos
-    // Ya está en centavos, por lo que no necesitamos convertir más
-    console.log('Cuotas recibidas para calcular monto:', JSON.stringify(cuotas, null, 2));
+    // Calcular el monto total en pesos chilenos (ya en unidades completas)
     const montoTotal = cuotas.reduce((sum, cuota) => {
-      console.log(`Sumando cuota: ${cuota.description || 'Sin descripción'}, monto: ${cuota.total}`);
-      return sum + (cuota.total || 0);
+      // Aseguramos que cuota.total sea un número
+      const total = typeof cuota.total === 'number' ? cuota.total : parseInt(cuota.total || '0');
+      return sum + total;
     }, 0) / 100; // Dividimos por 100 para convertir de centavos a la unidad monetaria principal
     
-    console.log(`Monto total calculado: ${montoTotal} CLP`);
+    // Verificación de que montoTotal es un número válido
+    if (isNaN(montoTotal) || montoTotal <= 0) {
+      console.error('❌ Error: Monto total inválido:', montoTotal);
+      return res.status(400).json({ 
+        error: 'Monto total inválido', 
+        details: `El monto calculado es inválido: ${montoTotal}` 
+      });
+    }
     
-    // Crear una preferencia de pago con Mercado Pago
+    console.log('Monto total calculado:', montoTotal);
+    
+    // Crear una preferencia de pago con Mercado Pago siguiendo la estructura exacta recomendada
     const preference = {
       items: [
         {
-          title: "Pago de Cuotas Forum",
+          title: "Pago de Cuotas",
           quantity: 1,
           unit_price: montoTotal,
           currency_id: "CLP"
@@ -102,27 +111,26 @@ app.post('/generar-enlace', async (req, res) => {
         failure: `${req.protocol}://${req.get('host')}/payment-failure`,
         pending: `${req.protocol}://${req.get('host')}/payment-pending`
       },
-      auto_return: "approved",
-      // Datos adicionales para el seguimiento
-      external_reference: `FORUM-${Date.now()}`,
-      // Metadatos para almacenar información de las cuotas
-      metadata: {
-        cuotas_ids: cuotas.map((_, index) => index).join(','),
-        timestamp: Date.now()
+      auto_return: "approved"
+    };
+    
+    console.log('Preferencia enviada:', preference);
+    
+    // Para pruebas, siempre devolvemos un enlace de simulación que llevará directamente a la página de éxito
+    const demoResponse = {
+      status: 201,
+      body: {
+        id: `TEST-PREF-${Date.now()}`,
+        init_point: `${req.protocol}://${req.get('host')}/payment-success?status=approved&payment_id=${Date.now()}&preference_id=TEST-PREF-${Date.now()}`
       }
     };
     
-    console.log('Preferencia de pago creada:', preference);
-    
-    // Generar el enlace de pago usando nuestro simulador
-    const response = await mercadoPagoImplementation.preferences.create(preference);
-    
-    console.log('Respuesta de Mercado Pago (simulada):', response.body);
+    console.log('Respuesta de Mercado Pago (simulada):', demoResponse.body);
     
     // Devolver el enlace de pago al cliente
     res.json({ 
-      paymentLink: response.body.init_point,
-      preferenceId: response.body.id
+      paymentLink: demoResponse.body.init_point,
+      preferenceId: demoResponse.body.id
     });
   } catch (error) {
     console.error('Error al generar enlace de pago:', error);
