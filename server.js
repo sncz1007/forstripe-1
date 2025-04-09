@@ -38,8 +38,14 @@ const mercadoPagoSimulator = {
         status: 201,
         body: {
           id: preferenceId,
-          init_point: internalUrl, // Para pruebas, redirigimos internamente
-          sandbox_init_point: sandboxUrl
+          init_point: sandboxUrl, // Usamos el enlace sandbox como principal para mejor experiencia
+          sandbox_init_point: sandboxUrl,
+          // Agregamos información adicional para depuración
+          internal_url: internalUrl,
+          debug_info: {
+            test_mode: true,
+            simulation: true
+          }
         }
       };
     }

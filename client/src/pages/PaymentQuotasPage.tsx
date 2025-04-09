@@ -643,13 +643,13 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       
       try {
         setIsLoading(true);
-        console.log("Enviando solicitud a Shopify para generar enlace de pago...");
+        console.log("Enviando solicitud a Mercado Pago para generar enlace de pago...");
         console.log("Cuotas a enviar:", cuotasParaShopify);
         
         // Obtener la URL base actual
         const baseUrl = window.location.origin;
         
-        // Enviar solicitud al backend para generar el enlace de pago
+        // Enviar solicitud al backend para generar el enlace de pago con Mercado Pago
         const response = await fetch(`${baseUrl}/generar-enlace`, {
           method: 'POST',
           headers: {
@@ -663,10 +663,10 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         }
         
         const data = await response.json();
-        console.log("Respuesta recibida:", data);
+        console.log("Respuesta recibida de Mercado Pago:", data);
         
         if (data.paymentLink) {
-          console.log("Redirigiendo al enlace de pago:", data.paymentLink);
+          console.log("Redirigiendo al enlace de pago de Mercado Pago:", data.paymentLink);
           
           // Si el enlace es interno (apunta a payment-success), usar setLocation para navegación interna
           if (data.paymentLink.includes('/payment-success')) {
@@ -674,19 +674,25 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
             setIsLoading(false);
             setLocation('/payment-success');
           } else {
-            // Si es un enlace externo (Shopify real), usar redirección de navegador
-            console.log("Redirigiendo a enlace externo de Shopify");
+            // Si es un enlace externo de Mercado Pago, usar redirección de navegador
+            console.log("Redirigiendo a enlace externo de Mercado Pago");
+            
+            // Almacenar información de pago antes de redirigir
+            sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
+            sessionStorage.setItem('preferenceId', data.preferenceId || '');
+            
+            // Redirigir al checkout de Mercado Pago
             window.location.href = data.paymentLink;
           }
         } else {
-          throw new Error("No se recibió un enlace de pago válido");
+          throw new Error("No se recibió un enlace de pago válido de Mercado Pago");
         }
       } catch (error) {
-        console.error("Error al procesar el pago con Shopify:", error);
+        console.error("Error al procesar el pago con Mercado Pago:", error);
         alert("Hubo un problema al generar el enlace de pago. Por favor, inténtelo de nuevo más tarde.");
         setIsLoading(false);
         
-        // Como fallback, si hay un error con Shopify, continuamos con el flujo original
+        // Como fallback, si hay un error con Mercado Pago, continuamos con el flujo original
         setTimeout(() => {
           setLocation('/payment-success');
         }, 1500);
