@@ -64,9 +64,23 @@ export default function PaymentBridge(props: PaymentBridgeProps) {
         setCountdown(prev => {
           if (prev <= 1) {
             clearInterval(interval);
-            // Agregar parámetros de simulación
-            const redirectUrl = '/payment-success?status=approved&payment_id=TEST-PAYMENT';
+            // Agregar parámetros de simulación y guardar información del pago
+            const now = new Date();
+            const paymentInfo = {
+              paymentId: `TEST-PAYMENT-${Date.now()}`,
+              paymentDate: now.toLocaleDateString('es-CL'),
+              paymentTime: now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+              status: 'approved'
+            };
+            
+            // Guardar la información del pago en sessionStorage
+            sessionStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
+            
+            // Crear URL con parámetros completos
+            const redirectUrl = '/payment-success?status=approved&payment_id=' + paymentInfo.paymentId;
             console.log("Redirigiendo a:", redirectUrl);
+            
+            // Usamos setLocation para navegación interna
             setLocation(redirectUrl);
             return 0;
           }

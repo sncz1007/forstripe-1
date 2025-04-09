@@ -1,21 +1,75 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { RouteComponentProps, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+interface QuotaInfo {
+  contractNumber: string;
+  licensePlate: string;
+  vehicleType: string;
+  pacPatActive: boolean;
+  quotaNumber: string;
+  quotaAmount: string;
+  interestAmount: string;
+  totalAmount: string;
+  daysUntilDue: number;
+  dueDate?: string;
+}
+
 interface PaymentSuccessPageProps extends RouteComponentProps {}
 
 export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
   const [_location, setLocation] = useLocation();
+  const [paymentInfo, setPaymentInfo] = useState<any>({});
+  const [selectedQuotas, setSelectedQuotas] = useState<QuotaInfo[]>([]);
   
-  // Valores fijos para simplificar y asegurar que la página funcione correctamente
-  const clientName = "Cristian Servando";
-  const clientRut = "17.546.765-3";
-  const paymentDate = new Date().toLocaleDateString('es-CL');
-  const paymentTime = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-  const operationCode = `FORUM-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-  const totalAmount = "$1.359.265";
+  // Valores predeterminados en caso de que no haya datos en sessionStorage
+  const defaultClientName = "Cristian Servando";
+  const defaultClientRut = "17.546.765-3";
+  const defaultDate = new Date().toLocaleDateString('es-CL');
+  const defaultTime = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  const defaultCode = `FORUM-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+  const defaultAmount = "$1.359.265";
+  
+  useEffect(() => {
+    // Recuperar datos desde sessionStorage
+    try {
+      // Información de pago
+      const paymentInfoStr = sessionStorage.getItem('paymentInfo');
+      if (paymentInfoStr) {
+        setPaymentInfo(JSON.parse(paymentInfoStr));
+      }
+      
+      // Cuotas seleccionadas
+      const selectedQuotasStr = sessionStorage.getItem('selectedQuotas');
+      if (selectedQuotasStr) {
+        setSelectedQuotas(JSON.parse(selectedQuotasStr));
+      }
+    } catch (err) {
+      console.error("Error al cargar datos de sessionStorage:", err);
+    }
+  }, []);
+  
+  // Usar datos dinámicos, con fallback a valores predeterminados
+  const clientName = sessionStorage.getItem('clientName') || defaultClientName;
+  const clientRut = sessionStorage.getItem('clientRut') || defaultClientRut;
+  const paymentDate = paymentInfo.paymentDate || defaultDate;
+  const paymentTime = paymentInfo.paymentTime || defaultTime;
+  const operationCode = paymentInfo.paymentId || defaultCode;
+  
+  // Calcular monto total de todas las cuotas
+  const totalAmount = selectedQuotas.length > 0 
+    ? selectedQuotas.reduce((sum, quota) => {
+        const numericAmount = parseInt(quota.totalAmount.replace(/[^0-9]/g, ''));
+        return isNaN(numericAmount) ? sum : sum + numericAmount;
+      }, 0)
+    : defaultAmount;
+    
+  // Formatear el monto total
+  const formattedTotalAmount = typeof totalAmount === 'number'
+    ? `$${totalAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}` 
+    : totalAmount;
   
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -106,7 +160,7 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
                       
                       <div className="flex justify-between">
                         <span className="text-gray-600">Total pagado:</span>
-                        <span className="font-medium text-[#009ADE]">{totalAmount}</span>
+                        <span className="font-medium text-[#009ADE]">{formattedTotalAmount}</span>
                       </div>
                     </div>
                   </div>
@@ -115,32 +169,63 @@ export default function PaymentSuccessPage(_props: PaymentSuccessPageProps) {
                   <div className="mt-4">
                     <span className="font-medium text-gray-700">Contratos pagados:</span>
                     <div className="mt-2 space-y-2">
-                      <div className="text-sm bg-gray-50 p-2 rounded">
-                        <div className="flex justify-between">
-                          <span>Contrato:</span>
-                          <span className="font-medium">CR-398765</span>
+                      {selectedQuotas.length > 0 ? (
+                        selectedQuotas.map((quota, index) => (
+                          <div key={index} className="text-sm bg-gray-50 p-2 rounded">
+                            <div className="flex justify-between">
+                              <span>Contrato:</span>
+                              <span className="font-medium">{quota.contractNumber || 'CR-398765'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Cuota:</span>
+                              <span className="font-medium">N°{quota.quotaNumber || '6'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Vehículo:</span>
+                              <span className="font-medium">{quota.vehicleType || 'SUV Toyota'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Patente:</span>
+                              <span className="font-medium">{quota.licensePlate || 'ABCD-12'}</span>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span>Monto:</span>
+                              <span className="font-medium text-green-600">{quota.totalAmount || '$1.359.265'}</span>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span>Estado:</span>
+                              <span className="font-medium text-blue-600">{quota.dueDate || 'Venció el 05/04/2025'}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm bg-gray-50 p-2 rounded">
+                          <div className="flex justify-between">
+                            <span>Contrato:</span>
+                            <span className="font-medium">CR-398765</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Cuota:</span>
+                            <span className="font-medium">N°6</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Vehículo:</span>
+                            <span className="font-medium">SUV Toyota</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Patente:</span>
+                            <span className="font-medium">ABCD-12</span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span>Monto:</span>
+                            <span className="font-medium text-green-600">$1.359.265</span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span>Estado:</span>
+                            <span className="font-medium text-blue-600">Venció el 05/04/2025</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Cuota:</span>
-                          <span className="font-medium">N°6</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Vehículo:</span>
-                          <span className="font-medium">SUV Toyota</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Patente:</span>
-                          <span className="font-medium">ABCD-12</span>
-                        </div>
-                        <div className="flex justify-between mt-1">
-                          <span>Monto:</span>
-                          <span className="font-medium text-green-600">$1.359.265</span>
-                        </div>
-                        <div className="flex justify-between mt-1">
-                          <span>Estado:</span>
-                          <span className="font-medium text-blue-600">Venció el 05/04/2025</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                   

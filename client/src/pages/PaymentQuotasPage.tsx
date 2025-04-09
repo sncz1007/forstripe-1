@@ -649,8 +649,20 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         // Guardar cuotas seleccionadas para mostrarlas en la página de éxito
         sessionStorage.setItem('selectedQuotas', JSON.stringify(selectedQuotasInfo));
         
-        // Redirigir al enlace de pago de Mercado Pago
-        window.location.href = data.paymentLink;
+        // Redirigir al enlace de pago usando el hook de wouter en lugar de window.location
+        // Primero revisamos si es una URL externa o interna
+        if (data.paymentLink.startsWith('http') && !data.paymentLink.includes(window.location.host)) {
+          // URL externa - usar window.location con target="_blank"
+          window.open(data.paymentLink, '_blank');
+        } else {
+          // Obtenemos la ruta relativa si es una URL completa interna
+          const path = data.paymentLink.includes(window.location.host) 
+            ? new URL(data.paymentLink).pathname
+            : data.paymentLink;
+            
+          console.log("Redirigiendo a ruta interna:", path);
+          setLocation(path);
+        }
       } else {
         throw new Error("No se recibió un enlace de pago válido");
       }
