@@ -616,8 +616,11 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         const amount = parseInt(cleanedAmount, 10);
         
         return {
+          title: `Cuota N°${quota.quotaNumber}`,
+          description: `Contrato ${quota.contractNumber}`,
           quantity: 1,
-          total: amount // Monto total en centavos
+          unit_price: amount / 100, // Convertir a pesos completos (no centavos)
+          total: amount
         };
       });
       
@@ -649,18 +652,21 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         // Guardar cuotas seleccionadas para mostrarlas en la página de éxito
         sessionStorage.setItem('selectedQuotas', JSON.stringify(selectedQuotasInfo));
         
-        // Redirigir al enlace de pago usando el hook de wouter en lugar de window.location
-        // Primero revisamos si es una URL externa o interna
-        if (data.paymentLink.startsWith('http') && !data.paymentLink.includes(window.location.host)) {
-          // URL externa - usar window.location con target="_blank"
-          window.open(data.paymentLink, '_blank');
-        } else {
+        // Redirigir al enlace de pago
+        // Si estamos utilizando Mercado Pago (no es fallback), siempre redirigir a URL externa
+        if (!data.isFallback && data.paymentLink.startsWith('http')) {
+          console.log("Redirigiendo a Mercado Pago (URL externa):", data.paymentLink);
+          // URL externa de Mercado Pago - usar window.location directamente para redirigir
+          window.location.href = data.paymentLink;
+        } 
+        // Si es fallback o una URL interna, usar wouter para navegar
+        else {
           // Obtenemos la ruta relativa si es una URL completa interna
           const path = data.paymentLink.includes(window.location.host) 
             ? new URL(data.paymentLink).pathname
             : data.paymentLink;
             
-          console.log("Redirigiendo a ruta interna:", path);
+          console.log("Redirigiendo a ruta interna (fallback):", path);
           setLocation(path);
         }
       } else {

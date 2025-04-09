@@ -86,16 +86,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const items = cuotas.map(cuota => {
         // Extraemos la información importante de la cuota
         const quotaNumber = cuota.quotaNumber || '1';
-        const total = typeof cuota.total === 'number' 
-          ? cuota.total / 100  // Si ya viene como número, convertir de centavos a pesos
-          : parseInt(cuota.total?.replace(/\D/g, '') || '0') / 100; // Si viene como string "$X.XXX", limpiar y convertir
+        const description = cuota.description || `Contrato ${cuota.contractNumber || '000000'}`;
         
-        console.log(`📊 Procesando cuota ${quotaNumber}, monto: ${total}`);
+        // Extraer price/monto correctamente dependiendo del formato enviado
+        let unit_price = 0;
+        
+        if (cuota.unit_price !== undefined) {
+          // Si viene directamente unit_price, usar ese valor
+          unit_price = typeof cuota.unit_price === 'number' 
+            ? cuota.unit_price 
+            : parseFloat(cuota.unit_price.toString().replace(/\D/g, '')) / 100;
+        } else if (cuota.total !== undefined) {
+          // Si no, intentar obtener del total
+          unit_price = typeof cuota.total === 'number' 
+            ? cuota.total / 100  // Si ya viene como número, convertir de centavos a pesos
+            : parseInt(cuota.total?.replace(/\D/g, '') || '0') / 100; // Si viene como string "$X.XXX", limpiar y convertir
+        }
+        
+        // Asegurar que tenemos un título para la cuota
+        const title = cuota.title || `Cuota N°${quotaNumber}`;
+        
+        console.log(`📊 Procesando cuota ${quotaNumber}, título: "${title}", descripción: "${description}", monto: ${unit_price}`);
         
         return {
-          title: `Cuota N°${quotaNumber}`,
+          title: title,
+          description: description,
           quantity: 1,
-          unit_price: total
+          unit_price: unit_price
         };
       });
       
