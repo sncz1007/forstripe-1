@@ -1,7 +1,7 @@
 /**
- * Implementación de Mercado Pago usando el SDK actual
+ * Implementación de Mercado Pago usando llamadas HTTP directas
+ * para evitar problemas de compatibilidad con el SDK
  */
-import mercadopago from 'mercadopago';
 
 // Función para inicializar Mercado Pago y crear preferencias
 export async function createPreference(options) {
@@ -11,11 +11,8 @@ export async function createPreference(options) {
       throw new Error('No se encontró el token de acceso de Mercado Pago');
     }
 
-    console.log('🔄 Configurando MercadoPago SDK...');
-    // Configurar el SDK con el token de acceso
-    mercadopago.configure({
-      access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN
-    });
+    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+    console.log('🔄 Usando token de Mercado Pago para acceso directo a la API...');
 
     const { items, backUrlBase, description, external_reference } = options;
 
@@ -24,11 +21,20 @@ export async function createPreference(options) {
       throw new Error('Se requieren productos para crear la preferencia');
     }
 
-    console.log('📦 Items preparados:', JSON.stringify(items));
+    // Preparamos los items - asegurando que cada uno tenga los campos requeridos
+    const processedItems = items.map(item => ({
+      title: item.title || 'Producto',
+      description: item.description || 'Descripción del producto',
+      quantity: item.quantity || 1,
+      currency_id: 'CLP', // Pesos chilenos
+      unit_price: Number(item.unit_price) || 0
+    }));
+
+    console.log('📦 Items preparados:', JSON.stringify(processedItems));
 
     // Creamos el objeto de preferencia
     const preferenceData = {
-      items: items,
+      items: processedItems,
       back_urls: {
         success: `${backUrlBase}/payment-success`,
         failure: `${backUrlBase}/payment-failure`,
@@ -41,22 +47,41 @@ export async function createPreference(options) {
 
     console.log('🔍 Datos de preferencia:', JSON.stringify(preferenceData));
 
-    // Creamos la preferencia usando el SDK
-    console.log('🔄 Llamando a la API de Mercado Pago para crear preferencia...');
-    const response = await mercadopago.preferences.create(preferenceData);
-    console.log('✅ Preferencia creada correctamente:', response.body.id);
+    // Llamada directa a la API de Mercado Pago
+    console.log('🔄 Llamando directamente a la API de Mercado Pago para crear preferencia...');
+    
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(preferenceData)
+    });
+
+    // Verificar la respuesta
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ Error en la respuesta de Mercado Pago:', errorData);
+      throw new Error(`Error de API de Mercado Pago: ${errorData.message || 'Error desconocido'}`);
+    }
+
+    // Procesar respuesta exitosa
+    const data = await response.json();
+    console.log('✅ Preferencia creada correctamente:', data.id);
+    console.log('🔗 URL de pago generada:', data.init_point);
 
     // Retornamos los datos necesarios
     return {
       success: true,
-      preferenceId: response.body.id,
-      paymentLink: response.body.init_point
+      preferenceId: data.id,
+      paymentLink: data.init_point
     };
   } catch (error) {
     console.error('❌ Error al crear preferencia de MercadoPago:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message || 'Error desconocido'
     };
   }
 }

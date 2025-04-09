@@ -613,14 +613,18 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       const cuotasParaMercadoPago = selectedQuotasInfo.map(quota => {
         // Extraer solo los números del string de monto (eliminar puntos, símbolos, etc.)
         const cleanedAmount = quota.totalAmount.replace(/[^0-9]/g, '');
-        const amount = parseInt(cleanedAmount, 10);
+        // Convertimos a número entero para el backend
+        const totalAmount = parseInt(cleanedAmount, 10);
+        // El unit_price debe estar en pesos, no en centavos para Mercado Pago
+        const unitPrice = totalAmount / 100; 
         
         return {
           title: `Cuota N°${quota.quotaNumber}`,
           description: `Contrato ${quota.contractNumber}`,
           quantity: 1,
-          unit_price: amount / 100, // Convertir a pesos completos (no centavos)
-          total: amount
+          unit_price: unitPrice,
+          currency_id: 'CLP',  // Pesos chilenos
+          total: totalAmount
         };
       });
       
