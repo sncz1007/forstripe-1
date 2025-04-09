@@ -588,7 +588,7 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   };
   
   // Manejar el botón de continuar
-  const handleContinue = () => {
+  const handleContinue = async () => {
     console.log("🔍 Iniciando proceso de pago...");
     
     if (selectedQuotas.length === 0) {
@@ -596,18 +596,69 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       return;
     }
     
+    // Verificar que userData existe
+    if (!userData) {
+      alert("Error: No se pudo cargar la información del cliente. Por favor, recargue la página.");
+      return;
+    }
+    
     // Mostrar loading spinner
     setIsLoading(true);
     
-    // Redirección directa a la página de éxito después de un breve retraso
-    // Esta es la solución más simple que evita cualquier problema con promesas o APIs
-    setTimeout(() => {
-      console.log("Redirigiendo directamente a la página de éxito...");
+    try {
+      // Recolectar información de las cuotas seleccionadas
+      const selectedQuotasInfo = selectedQuotas.map(index => userData.quotas[index]);
       
-      // SOLUCIÓN ULTRA SIMPLIFICADA:
-      // Ir directamente a la página de éxito sin ningún paso intermedio
-      setLocation("/payment-success");
-    }, 2000);
+      // Crear el array de cuotas para enviar a Mercado Pago
+      const cuotasParaMercadoPago = selectedQuotasInfo.map(quota => {
+        // Extraer solo los números del string de monto (eliminar puntos, símbolos, etc.)
+        const cleanedAmount = quota.totalAmount.replace(/[^0-9]/g, '');
+        const amount = parseInt(cleanedAmount, 10);
+        
+        return {
+          quantity: 1,
+          total: amount // Monto total en centavos
+        };
+      });
+      
+      console.log("Cuotas preparadas para Mercado Pago:", cuotasParaMercadoPago);
+      
+      // Llamar al endpoint para generar el enlace de pago
+      const response = await fetch('/generar-enlace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cuotas: cuotasParaMercadoPago })
+      });
+      
+      const data = await response.json();
+      console.log("Respuesta del servidor:", data);
+      
+      if (data.paymentLink) {
+        console.log("Redirigiendo al enlace de pago:", data.paymentLink);
+        // Guardamos el ID de preferencia para referencia futura
+        if (data.preferenceId) {
+          sessionStorage.setItem('preferenceId', data.preferenceId);
+        }
+        
+        // Guardar información del cliente para mostrarla en la página de éxito
+        sessionStorage.setItem('clientName', userData.clientName);
+        sessionStorage.setItem('clientRut', userData.clientRut);
+        
+        // Guardar cuotas seleccionadas para mostrarlas en la página de éxito
+        sessionStorage.setItem('selectedQuotas', JSON.stringify(selectedQuotasInfo));
+        
+        // Redirigir al enlace de pago de Mercado Pago
+        window.location.href = data.paymentLink;
+      } else {
+        throw new Error("No se recibió un enlace de pago válido");
+      }
+    } catch (error) {
+      console.error("Error al procesar el pago:", error);
+      alert("Hubo un problema al procesar su solicitud. Por favor, intente nuevamente.");
+      setIsLoading(false);
+    }
   };
   
   if (isLoading) {

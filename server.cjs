@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const mercadopago = require('mercadopago');
-const { fileURLToPath } = require('url');
 
 // Configurar Mercado Pago con el Access Token de prueba
 mercadopago.configure({ 
@@ -84,11 +83,7 @@ app.get('/payment-pending', (req, res) => {
   res.redirect('/payment-pending?status=pending');
 });
 
-// Iniciar el servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor de integración Mercado Pago ejecutándose en el puerto ${PORT}`);
-});
+// No necesitamos iniciar el servidor aquí, lo hacemos desde server/index.ts
+// Solo exponemos la app para que pueda ser usada
 
-// Exportar app para testing o integración con otros servicios
 module.exports = app;

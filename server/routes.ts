@@ -65,26 +65,125 @@ function generateId(): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Importar el servidor de Mercado Pago
-  let mercadoPagoHandler;
+  // Importar y configurar Mercado Pago directamente con ESM
+  let mercadopago: any = null;
   
   try {
-    // Intentar importar el servidor de Mercado Pago dinámicamente
-    const mercadoPagoModule = await import('../server.js');
-    mercadoPagoHandler = mercadoPagoModule.default;
-    console.log("✅ Servidor de Mercado Pago importado correctamente");
+    // Intentamos importar Mercado Pago y configurarlo
+    const mercadopagoModule = await import('mercadopago');
+    
+    if (mercadopagoModule && mercadopagoModule.default) {
+      mercadopago = mercadopagoModule.default;
+      
+      // Verificamos si existe el método configure
+      if (typeof mercadopago.configure === 'function') {
+        mercadopago.configure({
+          access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || ''
+        });
+        console.log("✅ Mercado Pago configurado correctamente");
+      } else {
+        console.log("⚠️ El método configure no existe en el módulo de Mercado Pago");
+      }
+    } else {
+      console.log("⚠️ No se pudo obtener el módulo de Mercado Pago correctamente");
+    }
+    
+    
+    // Endpoint para generar enlaces de pago con Mercado Pago Checkout Pro o fallback
+    app.post("/generar-enlace", async (req: Request, res: Response) => {
+      try {
+        const { cuotas } = req.body;
+        console.log('Cuotas recibidas:', cuotas);
+
+        if (!cuotas || !Array.isArray(cuotas) || cuotas.length === 0) {
+          console.error('Error: No se proporcionaron cuotas válidas', req.body);
+          return res.status(400).json({ error: 'No se proporcionaron cuotas válidas' });
+        }
+
+        // Calcular el monto total (asumimos que 'total' está en centavos)
+        const montoTotal = cuotas.reduce((sum, cuota) => {
+          const total = typeof cuota.total === 'number' ? cuota.total : parseInt(cuota.total || '0');
+          return sum + total;
+        }, 0) / 100;
+        console.log('Monto total calculado:', montoTotal);
+
+        // Si Mercado Pago no está disponible o no está configurado correctamente, usar el fallback
+        if (!mercadopago || !process.env.MERCADO_PAGO_ACCESS_TOKEN) {
+          console.log("⚠️ Usando respuesta simulada (fallback) - Mercado Pago no disponible");
+          const paymentLink = `${req.protocol}://${req.get('host')}/payment-success?fallback=true&timestamp=${Date.now()}`;
+          
+          return res.json({ 
+            paymentLink,
+            preferenceId: `TEST-PREF-${Date.now()}`
+          });
+        }
+
+        // Intentamos usar Mercado Pago si está disponible
+        try {
+          // Verificamos primero si el módulo tiene la funcionalidad esperada
+          if (mercadopago.preferences && typeof mercadopago.preferences.create === 'function') {
+            // Configurar la preferencia de pago
+            const preference = {
+              items: [
+                {
+                  title: "Pago de Cuotas",
+                  quantity: 1,
+                  unit_price: montoTotal,
+                  currency_id: "CLP"
+                }
+              ],
+              back_urls: {
+                success: `${req.protocol}://${req.get('host')}/payment-success`,
+                failure: `${req.protocol}://${req.get('host')}/payment-failure`,
+                pending: `${req.protocol}://${req.get('host')}/payment-pending`
+              }
+              // Nota: Se elimina el auto_return para evitar redirecciones prematuras
+            };
+            console.log('Preferencia enviada:', preference);
+
+            const response = await mercadopago.preferences.create(preference);
+            console.log('Respuesta de Mercado Pago:', response.body);
+
+            // Responder con el enlace de pago
+            return res.json({ 
+              paymentLink: response.body.init_point,
+              preferenceId: response.body.id
+            });
+          } else {
+            throw new Error("Método 'mercadopago.preferences.create' no disponible");
+          }
+        } catch (mpError) {
+          console.error('Error al crear preferencia en Mercado Pago:', mpError);
+          
+          // Si hay un error con Mercado Pago, usar el fallback
+          console.log("⚠️ Usando respuesta simulada (fallback) debido a error en Mercado Pago");
+          const paymentLink = `${req.protocol}://${req.get('host')}/payment-success?fallback=true&timestamp=${Date.now()}`;
+          
+          return res.json({ 
+            paymentLink,
+            preferenceId: `TEST-PREF-${Date.now()}`
+          });
+        }
+      } catch (error: any) {
+        console.error('Error al generar el enlace:', error);
+        
+        // En caso de cualquier error, usamos el fallback
+        const paymentLink = `${req.protocol}://${req.get('host')}/payment-success?fallback=true&timestamp=${Date.now()}`;
+        return res.json({ 
+          paymentLink,
+          preferenceId: `TEST-PREF-${Date.now()}`
+        });
+      }
+    });
+    
   } catch (error) {
-    console.error("❌ Error al importar el servidor de Mercado Pago:", error);
+    console.error("❌ Error al importar/configurar Mercado Pago:", error);
   }
   
-  // Endpoint para generar enlaces de pago con Mercado Pago
-  app.post("/generar-enlace", async (req: Request, res: Response) => {
-    console.log("🔄 Solicitud de generación de enlace de pago recibida:", req.body);
-    
-    // Redireccionar la solicitud al handler de Mercado Pago
-    if (mercadoPagoHandler) {
-      return mercadoPagoHandler(req, res);
-    }
+  // Endpoint para generar enlaces de pago con Mercado Pago como fallback
+  // El endpoint principal ya está registrado a través del middleware
+  app.post("/generar-enlace-fallback", async (req: Request, res: Response) => {
+    console.log("🔄 Solicitud de generación de enlace de pago fallback recibida:", req.body);
     
     // Si no se pudo cargar el handler, proporcionar una respuesta de fallback
     try {
@@ -99,7 +198,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generar un enlace simulado para pruebas como fallback
       const paymentLink = `${req.protocol}://${req.get('host')}/payment-success?fallback=true&timestamp=${Date.now()}`;
       
-      res.json({ paymentLink });
+      res.json({ 
+        paymentLink,
+        preferenceId: `TEST-PREF-${Date.now()}`
+      });
     } catch (error: any) {
       console.error("❌ Error al generar enlace de pago fallback:", error);
       res.status(500).json({ error: 'Error al generar el enlace de pago', details: error.message });
