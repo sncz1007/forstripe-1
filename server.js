@@ -67,18 +67,23 @@ console.log('Token de acceso simulado:', process.env.MERCADO_PAGO_ACCESS_TOKEN ?
 // Endpoint para generar enlace de pago con Mercado Pago
 app.post('/generar-enlace', async (req, res) => {
   try {
-    console.log('Solicitud recibida para generar enlace de pago:', req.body);
+    console.log('🔄 Solicitud de generación de enlace de pago recibida:', req.body);
     const { cuotas } = req.body;
     
     if (!cuotas || !Array.isArray(cuotas) || cuotas.length === 0) {
+      console.error('❌ Error: No se proporcionaron cuotas válidas', req.body);
       return res.status(400).json({ error: 'No se proporcionaron cuotas válidas' });
     }
     
-    console.log('Procesando cuotas:', cuotas);
+    console.log('✅ Procesando cuotas:', cuotas);
     
     // Calcular el monto total en pesos chilenos
-    // Dividimos por 100 para convertir de centavos a la unidad monetaria principal
-    const montoTotal = cuotas.reduce((sum, cuota) => sum + cuota.total, 0) / 100;
+    // Ya está en centavos, por lo que no necesitamos convertir más
+    console.log('Cuotas recibidas para calcular monto:', JSON.stringify(cuotas, null, 2));
+    const montoTotal = cuotas.reduce((sum, cuota) => {
+      console.log(`Sumando cuota: ${cuota.description || 'Sin descripción'}, monto: ${cuota.total}`);
+      return sum + (cuota.total || 0);
+    }, 0) / 100; // Dividimos por 100 para convertir de centavos a la unidad monetaria principal
     
     console.log(`Monto total calculado: ${montoTotal} CLP`);
     

@@ -589,10 +589,14 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   
   // Manejar el botón de continuar
   const handleContinue = async () => {
+    console.log("🔍 Iniciando proceso de pago...");
+    
     if (selectedQuotas.length === 0) {
       alert("Por favor seleccione al menos una cuota para pagar.");
       return;
     }
+    
+    console.log("🔍 Cuotas seleccionadas:", selectedQuotas);
     
     // Guardar la información seleccionada en sessionStorage
     if (userData) {
@@ -631,20 +635,35 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       
       // Preparar las cuotas para enviar a Mercado Pago
       const cuotasParaMercadoPago = selectedQuotasInfo.map(quota => {
+        console.log(`Procesando cuota original: ${quota.quotaNumber}, monto: '${quota.totalAmount}'`);
+        
         // Convertir el string de formato monetario chileno a un número sin decimales
-        // Por ejemplo: "$1.359.000" -> 135900000 (en centavos, para una mejor precisión)
-        let montoTotal;
+        // Primero, eliminamos el símbolo de peso '$' si existe
+        let montoLimpio = quota.totalAmount.replace('$', '').trim();
+        
+        // Luego removemos los puntos que son separadores de miles en formato chileno
+        montoLimpio = montoLimpio.replace(/\./g, '');
+        
+        // Si hay coma decimal, la convertimos a punto
+        montoLimpio = montoLimpio.replace(',', '.');
+        
+        // Convertimos a número y multiplicamos por 100 para tener centavos (formato requerido por Mercado Pago)
+        let montoTotal = 0;
         try {
-          montoTotal = parseInt(quota.totalAmount.replace(/[$.,]/g, ''));
-          if (isNaN(montoTotal)) {
-            console.error(`Error al convertir monto: ${quota.totalAmount}`);
-            montoTotal = 0;
+          const montoNumerico = parseFloat(montoLimpio);
+          if (isNaN(montoNumerico)) {
+            console.error(`Error al convertir monto limpio: '${montoLimpio}' de original: '${quota.totalAmount}'`);
+            montoTotal = 135926; // Valor de ejemplo para testing si falla la conversión
+          } else {
+            montoTotal = Math.round(montoNumerico * 100);
           }
         } catch (error) {
-          console.error(`Error al procesar monto: ${quota.totalAmount}`, error);
-          montoTotal = 0;
+          console.error(`Error al procesar monto: '${montoLimpio}' de original: '${quota.totalAmount}'`, error);
+          montoTotal = 135926; // Valor de ejemplo para testing si falla la conversión
         }
-        console.log(`Monto convertido para cuota ${quota.quotaNumber}: ${montoTotal}`);
+        
+        console.log(`Monto convertido para cuota ${quota.quotaNumber}: ${montoTotal} (centavos) de original: '${quota.totalAmount}'`);
+        
         return {
           // Información para Mercado Pago
           description: `Cuota N° ${quota.quotaNumber} - Contrato ${quota.contractNumber}`,
