@@ -93,18 +93,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (typeof cuota.unit_price === 'number') {
           unit_price = cuota.unit_price;
         } else if (cuota.unit_price) {
+          // Eliminar todo excepto números y punto decimal
           unit_price = parseFloat(String(cuota.unit_price).replace(/[^\d.]/g, ''));
         }
         
         console.log(`📊 Procesando cuota: título="${title}", descripción="${description}", monto=${unit_price}`);
         
+        // Validar que el precio no sea cero o inválido
+        if (isNaN(unit_price) || unit_price <= 0) {
+          throw new Error(`Precio inválido para cuota "${title}": ${cuota.unit_price}`);
+        }
+        
         return {
           title: title,
           description: description,
           quantity: 1,
-          unit_price: unit_price
+          unit_price: unit_price,
+          currency_id: "CLP"
         };
       });
+      
+      // Calcular total para mostrar en logs
+      const total = items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+      console.log(`💲 Total a pagar: ${total} CLP`);
       
       // Base de URL para redirecciones
       const urlBase = `${req.protocol}://${req.get('host')}`;
@@ -112,11 +123,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Intentamos crear la preferencia con nuestra implementación directa de API
       console.log("🔄 Creando preferencia de pago con la API directa de Mercado Pago");
       
+      // Configuramos las URLs de retorno para cuando el pago finalice
+      const backUrls = {
+        success: `${urlBase}/payment-success`,
+        failure: `${urlBase}/payment-failure`,
+        pending: `${urlBase}/payment-pending`
+      };
+      
       const mpOptions = {
         items: items,
         backUrlBase: urlBase,
-        description: `Pago de ${cuotas.length} cuota(s)`
+        backUrls: backUrls,
+        description: `Pago de ${cuotas.length} cuota(s) - Total: ${total} CLP`
       };
+      
+      // Verificamos que tengamos acceso a Mercado Pago
+      if (!process.env.MERCADO_PAGO_ACCESS_TOKEN) {
+        console.error("❌ No se encontró el token de acceso de Mercado Pago");
+        throw new Error("El servicio de pagos no está configurado correctamente");
+      }
       
       // Llamamos a la función de creación de preferencia
       const paymentResult = await createMercadoPagoPreference(mpOptions);
@@ -125,6 +150,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("✅ Preferencia de pago creada correctamente");
         console.log("🔗 ID de preferencia:", paymentResult.preferenceId);
         console.log("🔗 Enlace de pago:", paymentResult.paymentLink);
+        
+        // Guardar las URLs para debugging en logs
+        console.log('✅ URLs de pago generadas:');
+        console.log('✅ Payment Link:', paymentResult.paymentLink);
+        console.log('✅ Preference ID:', paymentResult.preferenceId);
         
         return res.json({
           success: true,

@@ -667,27 +667,47 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         
         // Redirigir al enlace de pago con tiempo para asegurar que todo se guarde
         setTimeout(() => {
-          // Si estamos utilizando Mercado Pago (no es fallback), siempre redirigir a URL externa
-          if (!data.isFallback && data.paymentLink.startsWith('http')) {
-            console.log("🔄 Redirigiendo a Mercado Pago (URL externa):", data.paymentLink);
-            // URL externa de Mercado Pago - usar window.location.replace para redirigir correctamente
-            window.location.replace(data.paymentLink);
-          } 
-          // Si es fallback o una URL interna, usar wouter para navegar
-          else {
-            try {
+          try {
+            // Si es un enlace externo de Mercado Pago
+            if (!data.isFallback && data.paymentLink && data.paymentLink.startsWith('http')) {
+              console.log("🚀 Redirigiendo a Mercado Pago (URL externa):", data.paymentLink);
+              
+              // Para debugging
+              console.log("⚠️ IMPORTANTE: Comprobar que el enlace de Mercado Pago se abre correctamente");
+              console.log("⚠️ URL completa:", data.paymentLink);
+              console.log("⚠️ Dominio destino:", new URL(data.paymentLink).hostname);
+              
+              // Guardar estado antes de redirigir
+              sessionStorage.setItem('lastPaymentAttempt', JSON.stringify({
+                timestamp: Date.now(),
+                url: data.paymentLink,
+                preferenceId: data.preferenceId
+              }));
+              
+              // Intentar abrir en una nueva ventana primero (para evitar bloqueos de navegador)
+              const newWindow = window.open(data.paymentLink, '_blank');
+              
+              // Si la nueva ventana se bloquea o no se abre, redirigir en la misma ventana
+              if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                console.log("⚠️ No se pudo abrir nueva ventana, intentando redirigir en la misma ventana");
+                window.location.href = data.paymentLink;
+              }
+            } 
+            // Si es fallback o una URL interna, usar wouter para navegar
+            else {
               // Obtenemos la ruta relativa si es una URL completa interna
-              const path = data.paymentLink.includes(window.location.host) 
+              const path = data.paymentLink && data.paymentLink.includes(window.location.host) 
                 ? new URL(data.paymentLink).pathname
-                : data.paymentLink;
+                : data.paymentLink || '/payment-bridge';
                 
               console.log("🔄 Redirigiendo a ruta interna (fallback):", path);
               setLocation(path);
-            } catch (error) {
-              console.error("Error al procesar URL:", error);
-              // En caso de error, redirigir a success directamente
-              setLocation('/payment-success');
             }
+          } catch (error) {
+            console.error("❌ Error al procesar URL para redirección:", error);
+            // En caso de error, mostrar el problema y redirigir a la página de puente
+            alert("Hubo un problema al conectar con el servicio de pagos. Continuando en modo alternativo.");
+            setLocation('/payment-bridge');
           }
         }, 200);
       } else {

@@ -72,12 +72,16 @@ export async function createMercadoPagoPreference(options) {
     let responseText;
     
     try {
+      console.log('🚀 Iniciando petición a Mercado Pago con Node Fetch');
+      
+      // Realizamos la petición con la API directa de Mercado Pago
       response = await fetch('https://api.mercadopago.com/checkout/preferences', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'User-Agent': 'Forum-Payment-Server/1.0'
         },
         body: JSON.stringify(preferenceData)
       });
