@@ -15,6 +15,7 @@ export async function createMercadoPagoPreference(options) {
     
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     console.log('🔑 Token de Mercado Pago configurado');
+    console.log('🔑 Longitud del token:', accessToken.length);
     
     const { items, backUrlBase, description } = options;
     

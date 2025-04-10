@@ -1,8 +1,10 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import type { WebSocket as WebSocketType } from "ws";
 import { storage } from "./storage";
+import fetch from 'node-fetch';
+import cors from 'cors';
 
 // Importamos la implementación de Mercado Pago que usa llamadas HTTP directas
 import { createMercadoPagoPreference, createFallbackPayment } from './mercadopago-direct-api.js';
@@ -68,8 +70,60 @@ function generateId(): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Habilitamos CORS para todas las rutas
+  app.use(cors());
+  
   // Indicamos que estamos usando la implementación directa a la API de Mercado Pago
   console.log('✅ Usando implementación directa a la API de Mercado Pago');
+  
+  // Endpoint que actúa como proxy para Mercado Pago
+  app.post("/api/mercadopago-proxy", async (req: Request, res: Response) => {
+    if (!process.env.MERCADO_PAGO_ACCESS_TOKEN) {
+      return res.status(500).json({ error: "No se encontró el token de acceso de Mercado Pago" });
+    }
+    
+    const { endpoint, method, body } = req.body;
+    
+    if (!endpoint) {
+      return res.status(400).json({ error: "Se requiere un endpoint" });
+    }
+    
+    try {
+      console.log(`🔄 Proxy a Mercado Pago: ${method || 'POST'} ${endpoint}`);
+      
+      const url = `https://api.mercadopago.com${endpoint}`;
+      const response = await fetch(url, {
+        method: method || 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Forum-Payment-Proxy/1.0'
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      
+      const responseData = await response.text();
+      let jsonResponse;
+      
+      try {
+        jsonResponse = JSON.parse(responseData);
+      } catch (error) {
+        jsonResponse = { text: responseData };
+      }
+      
+      console.log(`🔄 Respuesta de Mercado Pago (${response.status}):`, 
+                  response.status >= 400 ? responseData : "OK");
+      
+      return res.status(response.status).json(jsonResponse);
+    } catch (error: any) {
+      console.error("❌ Error en proxy Mercado Pago:", error);
+      return res.status(500).json({ 
+        error: "Error al comunicarse con Mercado Pago", 
+        details: error.message 
+      });
+    }
+  });
   
   // Endpoint para generar enlaces de pago con Mercado Pago
   app.post("/generar-enlace", async (req: Request, res: Response) => {
