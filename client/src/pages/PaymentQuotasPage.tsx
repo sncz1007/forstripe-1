@@ -800,7 +800,7 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                         </div>
                         <div className="mb-2 sm:mb-0">
                           <div className="text-xs text-gray-500 font-bold">Total Cuota</div>
-                          <div className="font-medium text-sm sm:text-base text-blue-600">{quota.totalAmount}</div>
+                          <div className="font-medium text-sm sm:text-base">{quota.totalAmount}</div>
                         </div>
                       </div>
                     </div>
