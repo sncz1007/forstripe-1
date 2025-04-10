@@ -591,8 +591,6 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   const handleContinue = async () => {
     console.log("🔍 Iniciando proceso de pago fijo de $1.000.000...");
     
-    // Ya no es necesario verificar cuotas seleccionadas, se envía un monto fijo
-    
     // Verificar que userData existe
     if (!userData) {
       alert("Error: No se pudo cargar la información del cliente. Por favor, recargue la página.");
@@ -844,13 +842,23 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
             {/* Sidebar - Resumen */}
             <div className="md:w-1/3">
               <div className="bg-[#01284E] text-white rounded-lg p-6 shadow-sm mb-6">
-                <h2 className="text-xl font-medium mb-6">Resumen total de Pago</h2>
+                <h2 className="text-xl font-medium mb-4">Resumen total de Pago</h2>
+                
+                {/* Anuncio del pago fijo */}
+                <div className="bg-blue-800 rounded-md p-3 mb-4">
+                  <div className="flex items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-blue-300 mt-1"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <div>
+                      <p className="font-medium">Pago Fijo de $1.000.000</p>
+                      <p className="text-sm text-blue-300 mt-1">Monto único independiente de las cuotas seleccionadas</p>
+                    </div>
+                  </div>
+                </div>
                 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
                       <span>Total Cuotas {selectedQuotas.length}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                     </div>
                     <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
                   </div>
@@ -858,32 +866,22 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
                       <span>Total Interés Mora</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                     </div>
                     <span className="font-medium">{selectedQuotas.length ? getTotalInteres() : "$0"}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <span>Total Gastos Cobranza</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    </div>
-                    <span className="font-medium">$0</span>
                   </div>
                 </div>
                 
                 <div className="border-t border-blue-800 my-4 pt-4">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">Total a Pagar</span>
-                    <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
+                    <span className="font-medium">Total a Pagar (Fijo)</span>
+                    <span className="font-medium">$1.000.000</span>
                   </div>
                 </div>
               </div>
               
               <button 
                 onClick={handleContinue}
-                disabled={selectedQuotas.length === 0}
-                className={`w-full py-3 rounded-md font-medium text-center ${selectedQuotas.length > 0 ? 'bg-[#0099CD] hover:bg-[#0089c7] text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800'}`}
+                className="w-full py-3 rounded-md font-medium text-center bg-[#0099CD] hover:bg-[#0089c7] text-white"
               >
                 Continuar
               </button>
