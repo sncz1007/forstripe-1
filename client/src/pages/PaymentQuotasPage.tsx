@@ -742,26 +742,7 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
           <div className="flex flex-col md:flex-row gap-6">
             {/* Main content - Cuotas */}
             <div className="md:w-2/3">
-              {/* Bloque de suscripción PAC/PAT si corresponde */}
-              {userData.showPacPatSubscription && (
-                <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
-                  <div className="flex">
-                    <div className="w-1/3">
-                      <img src="/images/card-pac-pat.png" alt="Tarjeta PAC/PAT" className="w-full" />
-                    </div>
-                    <div className="w-2/3 pl-6">
-                      <h2 className="text-xl font-medium text-gray-700 mb-2">Suscripción automática a PAC o PAT</h2>
-                      <p className="text-gray-600 text-sm mb-4">
-                        Puedes suscribir el pago de tus cuotas de manera automática (PAC o PAT).
-                        Este servicio es totalmente gratuito
-                      </p>
-                      <button className="bg-[#E74F32] text-white px-4 py-2 rounded">
-                        Suscribir a PAC/PAT
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Eliminado bloque de suscripción PAC/PAT */}
               
               <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
                 <h2 className="text-xl font-medium text-[#009ADE] mb-6">Cuotas a pagar</h2>
@@ -769,55 +750,57 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                 {/* Mapeo de cuotas dinámicamente */}
                 {userData.quotas.map((quota, index) => (
                   <div key={index} className={index < userData.quotas.length - 1 ? "border-b pb-6 mb-6" : ""}>
-                    <div className="bg-[#009ADE] text-white p-4 rounded-t-lg flex justify-between items-center mb-4">
-                      <div className="grid grid-cols-3 gap-6 w-full">
-                        <div>
-                          <div className="text-xs opacity-80">Contrato</div>
-                          <div className="font-medium">{quota.contractNumber}</div>
+                    <div className="bg-[#009ADE] text-white p-4 rounded-t-lg flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6 w-full mb-2 sm:mb-0">
+                        <div className="mb-1 sm:mb-0">
+                          <div className="text-xs opacity-80 font-bold">Contrato</div>
+                          <div className="font-medium text-sm sm:text-base">{quota.contractNumber}</div>
                         </div>
-                        <div>
-                          <div className="text-xs opacity-80">Patente</div>
-                          <div className="font-medium">{quota.licensePlate.replace(/-/g, '•')}</div>
+                        <div className="mb-1 sm:mb-0">
+                          <div className="text-xs opacity-80 font-bold">Patente</div>
+                          <div className="font-medium text-sm sm:text-base">{quota.licensePlate.replace(/-/g, '•')}</div>
                         </div>
-                        <div>
-                          <div className="text-xs opacity-80">Vehículo</div>
-                          <div className="font-medium">{quota.vehicleType}</div>
+                        <div className="mb-1 sm:mb-0">
+                          <div className="text-xs opacity-80 font-bold">Vehículo</div>
+                          <div className="font-medium text-sm sm:text-base">{quota.vehicleType}</div>
                         </div>
                       </div>
                       
                       {quota.pacPatActive && (
-                        <div className="flex items-center ml-4">
+                        <div className="flex items-center sm:ml-4 mt-1 sm:mt-0">
                           <div className="w-5 h-5 bg-white rounded-full mr-2 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#009ADE]"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#009ADE]"><polyline points="20 6 9 17 4 12"></polyline></svg>
                           </div>
-                          <span className="whitespace-nowrap font-medium">PAC/PAT Activo</span>
+                          <span className="whitespace-nowrap font-medium text-sm">PAC/PAT Activo</span>
                         </div>
                       )}
                     </div>
                     
-                    <div className="flex items-center">
-                      <CustomCheckbox 
-                        id={`quota-${index}`}
-                        checked={selectedQuotas.includes(index)}
-                        onChange={() => handleQuotaSelection(index)}
-                      />
+                    <div className="flex items-start sm:items-center">
+                      <div className="mt-2.5 sm:mt-0 mr-2">
+                        <CustomCheckbox 
+                          id={`quota-${index}`}
+                          checked={selectedQuotas.includes(index)}
+                          onChange={() => handleQuotaSelection(index)}
+                        />
+                      </div>
                       
-                      <div className="grid grid-cols-4 gap-6 w-full">
-                        <div>
-                          <div className="text-xs text-gray-500">Cuota N°{quota.quotaNumber}</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 w-full">
+                        <div className="mb-2 sm:mb-0">
+                          <div className="text-xs text-gray-500 font-bold">Cuota N°{quota.quotaNumber}</div>
                           <div className="text-sm">{quota.dueDate || `Vence en ${quota.daysUntilDue} ${quota.daysUntilDue === 1 ? 'día' : 'días'}`}</div>
                         </div>
-                        <div>
-                          <div className="text-xs text-gray-500">Cuota</div>
-                          <div className="font-medium">{quota.quotaAmount}</div>
+                        <div className="mb-2 sm:mb-0">
+                          <div className="text-xs text-gray-500 font-bold">Cuota</div>
+                          <div className="font-medium text-sm">{quota.quotaAmount}</div>
                         </div>
-                        <div>
-                          <div className="text-xs text-gray-500">Interés Mora</div>
-                          <div className="font-medium">{quota.interestAmount}</div>
+                        <div className="mb-2 sm:mb-0">
+                          <div className="text-xs text-gray-500 font-bold">Interés Mora</div>
+                          <div className="font-medium text-sm">{quota.interestAmount}</div>
                         </div>
-                        <div>
-                          <div className="text-xs text-gray-500">Total Cuota</div>
-                          <div className="font-medium">{quota.totalAmount}</div>
+                        <div className="mb-2 sm:mb-0">
+                          <div className="text-xs text-gray-500 font-bold">Total Cuota</div>
+                          <div className="font-medium text-sm sm:text-base text-blue-600">{quota.totalAmount}</div>
                         </div>
                       </div>
                     </div>
@@ -846,39 +829,39 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
             
             {/* Sidebar - Resumen */}
             <div className="md:w-1/3">
-              <div className="bg-[#01284E] text-white rounded-lg p-6 shadow-sm mb-6">
-                <h2 className="text-xl font-medium mb-6">Resumen total de Pago</h2>
+              <div className="bg-[#01284E] text-white rounded-lg p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl font-medium mb-4 sm:mb-6 text-center sm:text-left">Resumen total de Pago</h2>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
-                      <span>Total Cuotas {selectedQuotas.length}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                      <span className="text-sm sm:text-base">Total Cuotas {selectedQuotas.length}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                     </div>
-                    <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
+                    <span className="font-medium text-sm sm:text-base">{selectedQuotas.length ? getTotal() : "$0"}</span>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
-                      <span>Total Interés Mora</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                      <span className="text-sm sm:text-base">Total Interés Mora</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                     </div>
-                    <span className="font-medium">{selectedQuotas.length ? getTotalInteres() : "$0"}</span>
+                    <span className="font-medium text-sm sm:text-base">{selectedQuotas.length ? getTotalInteres() : "$0"}</span>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
-                      <span>Total Gastos Cobranza</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                      <span className="text-sm sm:text-base">Total Gastos Cobranza</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 text-blue-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                     </div>
-                    <span className="font-medium">$0</span>
+                    <span className="font-medium text-sm sm:text-base">$0</span>
                   </div>
                 </div>
                 
-                <div className="border-t border-blue-800 my-4 pt-4">
+                <div className="border-t border-blue-800 my-3 sm:my-4 pt-3 sm:pt-4">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">Total a Pagar</span>
-                    <span className="font-medium">{selectedQuotas.length ? getTotal() : "$0"}</span>
+                    <span className="font-medium text-base sm:text-lg">Total a Pagar</span>
+                    <span className="font-medium text-base sm:text-lg">{selectedQuotas.length ? getTotal() : "$0"}</span>
                   </div>
                 </div>
               </div>
@@ -886,16 +869,16 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
               <button 
                 onClick={handleContinue}
                 disabled={selectedQuotas.length === 0}
-                className={`w-full py-3 rounded-md font-medium text-center ${selectedQuotas.length > 0 ? 'bg-[#0099CD] hover:bg-[#0089c7] text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800'}`}
+                className={`w-full py-3 rounded-md font-medium text-center text-base ${selectedQuotas.length > 0 ? 'bg-[#0099CD] hover:bg-[#0089c7] text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800'}`}
               >
                 Continuar
               </button>
               
-              <div className="mt-8 bg-white rounded-lg p-4 border border-blue-100">
+              <div className="mt-6 sm:mt-8 bg-white rounded-lg p-4 border border-blue-100">
                 <div>
                   <img src="/images/sucursal-virtual-banner.png" alt="Sucursal Virtual" className="w-full h-auto rounded-lg object-cover mb-3" />
-                  <h3 className="text-[#009ADE] font-medium text-center">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
-                  <p className="text-center text-sm mt-2">Conócela registrándote aquí.</p>
+                  <h3 className="text-[#009ADE] font-medium text-center text-sm sm:text-base">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
+                  <p className="text-center text-xs sm:text-sm mt-2">Conócela registrándote aquí.</p>
                 </div>
               </div>
             </div>
