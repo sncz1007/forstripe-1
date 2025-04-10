@@ -74,48 +74,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Endpoint para generar enlaces de pago con Mercado Pago
   app.post("/generar-enlace", async (req: Request, res: Response) => {
     try {
-      const { cuotas } = req.body;
-      console.log('🔍 Cuotas recibidas para pago:', cuotas);
-
-      if (!cuotas || !Array.isArray(cuotas) || cuotas.length === 0) {
-        console.error('❌ Error: No se proporcionaron cuotas válidas', req.body);
-        return res.status(400).json({ error: 'No se proporcionaron cuotas válidas' });
-      }
-
-      // Preparar objetos para MercadoPago en el formato esperado
-      const items = cuotas.map(cuota => {
-        // Asegurarse de tener valores válidos para todos los campos
-        const title = cuota.title || `Cuota ${cuota.quotaNumber || ''}`;
-        const description = cuota.description || `Contrato ${cuota.contractNumber || '000000'}`;
-        
-        // Extraer precio unitario correctamente (debe ser un número)
-        let unit_price = 0;
-        if (typeof cuota.unit_price === 'number') {
-          unit_price = cuota.unit_price;
-        } else if (cuota.unit_price) {
-          unit_price = parseFloat(String(cuota.unit_price).replace(/[^\d.]/g, ''));
-        }
-        
-        console.log(`📊 Procesando cuota: título="${title}", descripción="${description}", monto=${unit_price}`);
-        
-        return {
-          title: title,
-          description: description,
-          quantity: 1,
-          unit_price: unit_price
-        };
-      });
+      console.log('🔍 Generando enlace de pago fijo de $1.000.000');
       
       // Base de URL para redirecciones
       const urlBase = `${req.protocol}://${req.get('host')}`;
       
-      // Intentamos crear la preferencia con nuestra implementación directa de API
-      console.log("🔄 Creando preferencia de pago con la API directa de Mercado Pago");
+      // Creamos un ítem fijo de $1.000.000
+      const items = [{
+        title: "Pago de cuotas",
+        description: "Pago fijo para todas las personas",
+        quantity: 1,
+        unit_price: 1000000, // Un millón de pesos chilenos
+        currency_id: 'CLP'
+      }];
+      
+      console.log("🔄 Creando preferencia de pago fija con la API directa de Mercado Pago");
       
       const mpOptions = {
         items: items,
         backUrlBase: urlBase,
-        description: `Pago de ${cuotas.length} cuota(s)`
+        description: `Pago fijo de $1.000.000`
       };
       
       // Llamamos a la función de creación de preferencia

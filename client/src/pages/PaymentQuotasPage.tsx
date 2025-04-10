@@ -589,12 +589,9 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   
   // Manejar el botón de continuar
   const handleContinue = async () => {
-    console.log("🔍 Iniciando proceso de pago...");
+    console.log("🔍 Iniciando proceso de pago fijo de $1.000.000...");
     
-    if (selectedQuotas.length === 0) {
-      alert("Por favor seleccione al menos una cuota para pagar.");
-      return;
-    }
+    // Ya no es necesario verificar cuotas seleccionadas, se envía un monto fijo
     
     // Verificar que userData existe
     if (!userData) {
@@ -606,38 +603,11 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
     setIsLoading(true);
     
     try {
-      // Recolectar información de las cuotas seleccionadas
-      const selectedQuotasInfo = selectedQuotas.map(index => userData.quotas[index]);
-      
-      // Crear el array de cuotas para enviar a Mercado Pago
-      const cuotasParaMercadoPago = selectedQuotasInfo.map(quota => {
-        // Extraer solo los números del string de monto (eliminar puntos, símbolos, etc.)
-        console.log(`💲 Procesando monto de cuota: ${quota.totalAmount}`);
-        const cleanedAmount = quota.totalAmount.replace(/[^0-9]/g, '');
-        console.log(`💲 Monto limpio (sin puntos/símbolos): ${cleanedAmount}`);
-        
-        // Convertimos a número entero para el backend
-        const totalAmount = parseInt(cleanedAmount, 10);
-        console.log(`💲 Monto total como entero: ${totalAmount}`);
-        
-        // El unit_price debe estar en la moneda base (pesos completos, no centavos)
-        // NO dividimos por 100 porque ya está en pesos chilenos
-        const unitPrice = totalAmount;
-        console.log(`💲 Precio unitario final para MP: ${unitPrice}`);
-        
-        const cuotaObj = {
-          title: `Cuota N°${quota.quotaNumber}`,
-          description: `Contrato ${quota.contractNumber}`,
-          quantity: 1,
-          unit_price: unitPrice,
-          currency_id: 'CLP'  // Pesos chilenos
-        };
-        
-        console.log(`📦 Objeto de cuota procesado:`, cuotaObj);
-        return cuotaObj;
-      });
-      
-      console.log("Cuotas preparadas para Mercado Pago:", cuotasParaMercadoPago);
+      // Si hay cuotas seleccionadas, las guardamos para referencia
+      // pero ya no las usamos para el monto de pago
+      const selectedQuotasInfo = selectedQuotas.length > 0 
+        ? selectedQuotas.map(index => userData.quotas[index])
+        : [];
       
       // Llamar al endpoint para generar el enlace de pago
       const response = await fetch('/generar-enlace', {
@@ -645,7 +615,8 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ cuotas: cuotasParaMercadoPago })
+        // Enviamos un objeto vacío, el servidor ignora el contenido
+        body: JSON.stringify({})
       });
       
       const data = await response.json();
