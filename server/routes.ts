@@ -43,8 +43,9 @@ interface UserClient {
   clientId: string;
 }
 
-// Usar un array para las solicitudes
-const paymentRequests: PaymentRequest[] = [];
+// Usar una base de datos para las solicitudes
+// Mantenemos los arrays en memoria para una comunicación eficiente
+const paymentRequestsCache: PaymentRequest[] = [];
 const adminClients: AdminClient[] = [];
 const userClients: UserClient[] = [];
 
@@ -60,8 +61,32 @@ const testRequest: PaymentRequest = {
   amount: '',
   paymentLink: ''
 };
-paymentRequests.push(testRequest);
-console.log(`[DEBUG] Created test payment request with ID: ${testId}`);
+
+// Inicialización asincrónica de datos
+async function initializeData() {
+  try {
+    // Comprobar si el registro de prueba ya existe
+    const existingRequest = await storage.getPaymentRequest(testId);
+    
+    if (!existingRequest) {
+      // Si no existe, guardarlo en la base de datos
+      await storage.createPaymentRequest(testRequest);
+      console.log(`[DEBUG] Created test payment request with ID: ${testId}`);
+    } else {
+      console.log(`[DEBUG] Test payment request with ID: ${testId} already exists`);
+    }
+    
+    // Cargar todas las solicitudes en la caché
+    const allRequests = await storage.getAllPaymentRequests();
+    paymentRequestsCache.push(...allRequests);
+    console.log(`[INFO] Loaded ${paymentRequestsCache.length} payment requests from database`);
+  } catch (error) {
+    console.error("[ERROR] Failed to initialize data:", error);
+  }
+}
+
+// Inicializar datos al arrancar
+initializeData();
 
 // Generate unique ID
 function generateId(): string {
@@ -273,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API to create a payment request
-  app.post("/api/payment-request", (req: Request, res: Response) => {
+  app.post("/api/payment-request", async (req: Request, res: Response) => {
     const { rut } = req.body;
     
     if (!rut) {
@@ -288,41 +313,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: Date.now()
     };
     
-    paymentRequests.push(paymentRequest);
-    
-    // Notify all admin clients about the new payment request
-    adminClients.forEach(client => {
-      if (client.ws.readyState === WebSocket.OPEN) {
-        client.ws.send(JSON.stringify({ 
-          type: 'new_request', 
-          request: paymentRequest 
-        }));
+    try {
+      // Comprobar si hay solicitudes anteriores para este RUT
+      const existingRequests = await storage.getPaymentRequestsByRut(rut);
+      
+      if (existingRequests.length > 0) {
+        // Si hay solicitudes anteriores, copiar información del cliente de la más reciente
+        const latestRequest = existingRequests.sort((a, b) => b.timestamp - a.timestamp)[0];
+        
+        // Copiar información del cliente si existe
+        if (latestRequest.clientName) paymentRequest.clientName = latestRequest.clientName;
+        if (latestRequest.contractNumber) paymentRequest.contractNumber = latestRequest.contractNumber;
+        if (latestRequest.vehicleType) paymentRequest.vehicleType = latestRequest.vehicleType;
+        if (latestRequest.licensePlate) paymentRequest.licensePlate = latestRequest.licensePlate;
+        if (latestRequest.paymentMethod) paymentRequest.paymentMethod = latestRequest.paymentMethod;
+        
+        console.log(`Encontrada información previa para RUT ${rut}, pre-llenando datos del cliente`);
       }
-    });
-    
-    return res.status(201).json({ requestId });
+      
+      // Guardar en base de datos
+      await storage.createPaymentRequest(paymentRequest);
+      
+      // Agregar a la caché en memoria
+      paymentRequestsCache.push(paymentRequest);
+      
+      // Notify all admin clients about the new payment request
+      adminClients.forEach(client => {
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(JSON.stringify({ 
+            type: 'new_request', 
+            request: paymentRequest 
+          }));
+        }
+      });
+      
+      return res.status(201).json({ requestId });
+    } catch (error) {
+      console.error("Error creating payment request:", error);
+      return res.status(500).json({ error: "Failed to create payment request" });
+    }
   });
   
   // API to check payment request status
-  app.get("/api/payment-request/:id", (req: Request, res: Response) => {
+  app.get("/api/payment-request/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
-    const request = paymentRequests.find(req => req.id === id);
     
-    if (!request) {
-      return res.status(404).json({ error: "Payment request not found" });
+    try {
+      // Primero buscar en la caché para respuesta rápida
+      const cachedRequest = paymentRequestsCache.find(req => req.id === id);
+      
+      if (cachedRequest) {
+        return res.json(cachedRequest);
+      }
+      
+      // Si no está en caché, buscar en la base de datos
+      const request = await storage.getPaymentRequest(id);
+      
+      if (!request) {
+        return res.status(404).json({ error: "Payment request not found" });
+      }
+      
+      // Añadir a la caché para futuros accesos
+      paymentRequestsCache.push(request);
+      
+      return res.json(request);
+    } catch (error) {
+      console.error("Error fetching payment request:", error);
+      return res.status(500).json({ error: "Failed to fetch payment request" });
     }
-    
-    return res.json(request);
   });
   
   // API to get all payment requests (para el panel de admin)
-  app.get("/api/payment-requests", (_req: Request, res: Response) => {
-    console.log(`Enviando ${paymentRequests.length} solicitudes a través de API`);
-    return res.json(paymentRequests);
+  app.get("/api/payment-requests", async (_req: Request, res: Response) => {
+    try {
+      // Para evitar problemas de concurrencia, siempre consultamos la base de datos para la lista completa
+      const requests = await storage.getAllPaymentRequests();
+      console.log(`Enviando ${requests.length} solicitudes a través de API`);
+      return res.json(requests);
+    } catch (error) {
+      console.error("Error fetching payment requests:", error);
+      return res.status(500).json({ error: "Failed to fetch payment requests" });
+    }
   });
   
   // API para actualizar solicitudes (para el panel de admin)
-  app.post("/api/payment-request/:id/update", (req: Request, res: Response) => {
+  app.post("/api/payment-request/:id/update", async (req: Request, res: Response) => {
     const { id } = req.params;
     const { 
       status, 
@@ -342,52 +417,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     console.log(`Actualizando solicitud ${id}:`, req.body);
     
-    const requestIndex = paymentRequests.findIndex(req => req.id === id);
-    if (requestIndex === -1) {
-      return res.status(404).json({ error: 'Solicitud no encontrada' });
+    try {
+      // Buscar la solicitud en la base de datos
+      const existingRequest = await storage.getPaymentRequest(id);
+      if (!existingRequest) {
+        return res.status(404).json({ error: 'Solicitud no encontrada' });
+      }
+      
+      // Crear objeto actualizado
+      const updatedRequest = {
+        ...existingRequest,
+        status,
+        response,
+        clientName,
+        contractNumber,
+        vehicleType,
+        licensePlate,
+        paymentMethod,
+        amount,
+        paymentLink,
+        quotaNumber,
+        interestAmount,
+        totalAmount,
+        dueDate
+      };
+      
+      // Actualizar en la base de datos
+      const savedRequest = await storage.updatePaymentRequest(id, updatedRequest);
+      if (!savedRequest) {
+        return res.status(500).json({ error: 'Error al actualizar la solicitud' });
+      }
+      
+      // Actualizar en la caché
+      const cacheIndex = paymentRequestsCache.findIndex(req => req.id === id);
+      if (cacheIndex !== -1) {
+        paymentRequestsCache[cacheIndex] = savedRequest;
+      } else {
+        paymentRequestsCache.push(savedRequest);
+      }
+      
+      // Notificar a los clientes conectados sobre el cambio
+      userClients.forEach(client => {
+        if (client.requestId === id && client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(JSON.stringify({
+            type: "request_update",
+            request: savedRequest
+          }));
+        }
+      });
+      
+      // Notificar a todos los administradores
+      adminClients.forEach(client => {
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(JSON.stringify({
+            type: "request_updated",
+            request: savedRequest
+          }));
+        }
+      });
+      
+      res.json(savedRequest);
+    } catch (error) {
+      console.error("Error updating payment request:", error);
+      return res.status(500).json({ error: "Failed to update payment request" });
     }
-    
-    // Actualizar la solicitud
-    const updatedRequest = {
-      ...paymentRequests[requestIndex],
-      status,
-      response,
-      clientName,
-      contractNumber,
-      vehicleType,
-      licensePlate,
-      paymentMethod,
-      amount,
-      paymentLink,
-      quotaNumber,
-      interestAmount,
-      totalAmount,
-      dueDate
-    };
-    
-    paymentRequests[requestIndex] = updatedRequest;
-    
-    // Notificar a los clientes conectados sobre el cambio
-    userClients.forEach(client => {
-      if (client.requestId === id && client.ws.readyState === WebSocket.OPEN) {
-        client.ws.send(JSON.stringify({
-          type: "request_update",
-          request: updatedRequest
-        }));
-      }
-    });
-    
-    // Notificar a todos los administradores
-    adminClients.forEach(client => {
-      if (client.ws.readyState === WebSocket.OPEN) {
-        client.ws.send(JSON.stringify({
-          type: "request_updated",
-          request: updatedRequest
-        }));
-      }
-    });
-    
-    res.json(updatedRequest);
   });
 
   // Create HTTP server
@@ -412,11 +505,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       adminClients.push(admin);
       
       // Send list of all payment requests to new admin
-      console.log(`Enviando ${paymentRequests.length} solicitudes al nuevo admin`);
+      console.log(`Enviando ${paymentRequestsCache.length} solicitudes al nuevo admin`);
       
       ws.send(JSON.stringify({ 
         type: 'requests_list', 
-        requests: paymentRequests 
+        requests: paymentRequestsCache 
       }));
       
       ws.on('message', (message) => {
@@ -449,11 +542,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // No mostramos todos los campos para no saturar los logs
             });
             
-            const requestIndex = paymentRequests.findIndex(req => req.id === requestId);
+            const requestIndex = paymentRequestsCache.findIndex(req => req.id === requestId);
             
             if (requestIndex !== -1) {
               console.log('Updating request with ID:', requestId);
-              const request = paymentRequests[requestIndex];
+              const request = paymentRequestsCache[requestIndex];
               console.log('Original request:', JSON.stringify(request));
               
               // Actualizar el estado y respuesta
@@ -581,7 +674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (requestId) {
         console.log(`User client has requestId: ${requestId}`);
         userClient.requestId = requestId;
-        const request = paymentRequests.find(req => req.id === requestId);
+        const request = paymentRequestsCache.find(req => req.id === requestId);
         
         if (request) {
           console.log(`Found request for ID ${requestId}:`, JSON.stringify(request));
@@ -594,6 +687,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ws.send(statusMessage);
         } else {
           console.log(`No request found for ID: ${requestId}`);
+          
+          // Si no está en la caché, intentar buscar en la base de datos
+          storage.getPaymentRequest(requestId).then(dbRequest => {
+            if (dbRequest) {
+              console.log(`Found request in database for ID ${requestId}`);
+              // Añadir a la caché
+              paymentRequestsCache.push(dbRequest);
+              // Enviar al cliente
+              ws.send(JSON.stringify({ 
+                type: 'request_status',
+                request: dbRequest
+              }));
+            } else {
+              console.log(`No request found in database for ID: ${requestId}`);
+            }
+          }).catch(err => {
+            console.error(`Error fetching request from database: ${err.message}`);
+          });
         }
       } else {
         console.log(`User client connected without a requestId`);
