@@ -2,35 +2,14 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import type { WebSocket as WebSocketType } from "ws";
-import { storage } from "./storage";
+import { storage, PaymentRequest } from "./storage";
 import fetch from 'node-fetch';
 import cors from 'cors';
 
 // Importamos la implementación de Mercado Pago que usa llamadas HTTP directas
 import { createMercadoPagoPreference, createFallbackPayment } from './mercadopago-direct-api.js';
 
-// Store active clients and payment requests
-interface PaymentRequest {
-  rut: string;
-  id: string;
-  status: 'pending' | 'processing' | 'completed' | 'rejected';
-  timestamp: number;
-  response?: string;
-  // Campos cliente
-  clientName?: string;
-  // Campos vehículo
-  contractNumber?: string;
-  vehicleType?: string;
-  licensePlate?: string;
-  paymentMethod?: string;
-  // Campos pago
-  amount?: string;
-  paymentLink?: string;
-  quotaNumber?: string;
-  interestAmount?: string;
-  totalAmount?: string;
-  dueDate?: string;
-}
+// Interfaces para clientes
 
 interface AdminClient {
   ws: WebSocket;
@@ -55,7 +34,7 @@ const testRequest: PaymentRequest = {
   id: testId,
   rut: '12.345.678-9',
   status: 'pending',
-  timestamp: Date.now(),
+  timestamp: Date.now().toString(),
   contractNumber: '',
   vehicleType: '',
   amount: '',
@@ -310,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       rut,
       id: requestId,
       status: 'pending',
-      timestamp: Date.now()
+      timestamp: Date.now().toString()
     };
     
     try {
@@ -319,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (existingRequests.length > 0) {
         // Si hay solicitudes anteriores, copiar información del cliente de la más reciente
-        const latestRequest = existingRequests.sort((a, b) => b.timestamp - a.timestamp)[0];
+        const latestRequest = existingRequests.sort((a, b) => parseInt(b.timestamp) - parseInt(a.timestamp))[0];
         
         // Copiar información del cliente si existe
         if (latestRequest.clientName) paymentRequest.clientName = latestRequest.clientName;
@@ -721,7 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (data.type === 'register_request' && data.requestId) {
             userClient.requestId = data.requestId;
-            const request = paymentRequests.find(req => req.id === data.requestId);
+            const request = paymentRequestsCache.find(req => req.id === data.requestId);
             
             if (request) {
               ws.send(JSON.stringify({ 

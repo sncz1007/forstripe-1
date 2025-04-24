@@ -20,7 +20,7 @@ export interface PaymentRequest {
   id: string;
   rut: string;
   status: 'pending' | 'processing' | 'completed' | 'rejected';
-  timestamp: number;
+  timestamp: string; // Timestamp como string para evitar problemas de rango
   response?: string;
   clientName?: string;
   contractNumber?: string;

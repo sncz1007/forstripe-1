@@ -21,7 +21,7 @@ export const paymentRequests = pgTable("payment_requests", {
   id: text("id").primaryKey(), // ID único de la solicitud
   rut: text("rut").notNull(), // RUT del cliente
   status: text("status").notNull(), // pending, processing, completed, rejected
-  timestamp: integer("timestamp").notNull(), // Timestamp de creación
+  timestamp: text("timestamp").notNull(), // Timestamp de creación como texto para evitar problemas de rango
   response: text("response"), // Respuesta al cliente
   clientName: text("client_name"), // Nombre del cliente
   contractNumber: text("contract_number"), // Número de contrato
