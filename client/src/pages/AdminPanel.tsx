@@ -31,22 +31,63 @@ interface PaymentRequest {
 }
 
 export default function AdminPanel(_props: RouteComponentProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const auth = sessionStorage.getItem('adminAuth');
+    return auth === 'true';
+  });
+  const [password, setPassword] = useState('');
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<PaymentRequest | null>(null);
   const [response, setResponse] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.trim() === 'Nina1010@') {
+      sessionStorage.setItem('adminAuth', 'true');
+      setIsAuthenticated(true);
+      await fetchRequests(); // Cargar las solicitudes después de autenticar
+    } else {
+      alert('Contraseña incorrecta');
+      setPassword('');
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Admin Login</h2>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Ingresar
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
   const [fullInfoText, setFullInfoText] = useState('');
-  
-  // Campos cliente
   const [clientName, setClientName] = useState('');
   const [clientRut, setClientRut] = useState('');
-  
-  // Campos vehículo
   const [contractNumber, setContractNumber] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
-  
-  // Campos pago
   const [amount, setAmount] = useState('');
   const [paymentLink, setPaymentLink] = useState('');
   const [quotaNumber, setQuotaNumber] = useState('');
@@ -417,14 +458,40 @@ export default function AdminPanel(_props: RouteComponentProps) {
                       ${selectedRequest?.id === request.id ? 'border-primary bg-blue-50' : 'border-gray-200'}`}
                     onClick={() => handleSelectRequest(request)}
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-center">
                       <div>
-                        <p className="font-medium">RUT: {request.rut}</p>
+                        <p className="font-medium">RUT: <span className="text-base">{request.rut}</span></p>
                         <p className="text-xs text-gray-500">{formatDate(request.timestamp)}</p>
                       </div>
-                      <Badge className={getStatusColor(request.status)}>
-                        {translateStatus(request.status)}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getStatusColor(request.status)}>
+                          {translateStatus(request.status)}
+                        </Badge>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(request.rut);
+                            alert('RUT copiado al portapapeles');
+                          }}
+                          className="p-2 hover:bg-gray-100 rounded-full"
+                          title="Copiar RUT"
+                        >
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="20" 
+                            height="20" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
