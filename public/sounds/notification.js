@@ -1,97 +1,84 @@
 /**
- * Utilidad para reproducir sonidos de notificación
- * Este script se puede cargar desde cualquier página y proporciona funciones
- * para reproducir sonidos a través de los altavoces del computador
+ * Sistema simple de notificaciones de audio
+ * 
+ * Este script proporciona funciones para reproducir sonidos
+ * a través de los altavoces del computador
  */
 
-// Función para reproducir un sonido desde una URL
-function playSound(soundUrl) {
-  return new Promise((resolve, reject) => {
-    // Crear un nuevo elemento de audio
-    const audio = new Audio(soundUrl);
-    
-    // Asegurarse que se usarán los altavoces del sistema
-    audio.setSinkId = audio.setSinkId || function() { return Promise.resolve(); };
-    
-    // Intentar usar el dispositivo de salida predeterminado (altavoces)
-    audio.setSinkId('default')
-      .then(() => {
-        console.log('Reproduciendo sonido a través de los altavoces');
-        
-        // Configurar volumen al máximo para asegurar que se escuche
-        audio.volume = 1.0;
-        
-        // Agregar listeners para eventos
-        audio.onended = () => {
-          console.log('Reproducción de sonido completada');
-          resolve(true);
-        };
-        
-        audio.onerror = (error) => {
-          console.error('Error reproduciendo el sonido:', error);
-          reject(error);
-        };
-        
-        // Intentar reproducir el sonido
-        const playPromise = audio.play();
-        
-        // Manejar la promesa de reproducción (navegadores modernos)
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log('Reproducción iniciada correctamente');
-            })
-            .catch(error => {
-              console.error('Error iniciando la reproducción:', error);
-              
-              // Si hay error de interacción del usuario, intentamos una alternativa
-              if (error.name === 'NotAllowedError') {
-                console.warn('Reproducción bloqueada por falta de interacción del usuario');
-                // No rechazamos la promesa, ya que esto es un comportamiento esperado
-                resolve(false);
-              } else {
-                reject(error);
-              }
-            });
-        }
-      })
-      .catch(error => {
-        console.error('Error configurando dispositivo de salida de audio:', error);
-        
-        // Si falla setSinkId, intentamos reproducir de todos modos
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log('Reproducción alternativa iniciada correctamente');
-              resolve(true);
-            })
-            .catch(err => {
-              console.error('Error en reproducción alternativa:', err);
-              reject(err);
-            });
-        }
-      });
-  });
+// Crear elementos de audio globales con autoplay para funcionamiento más seguro
+const squirtleAudio = new Audio('/sounds/squirtle.mp3');
+squirtleAudio.id = 'squirtle-audio';
+squirtleAudio.preload = 'auto';
+
+const notificationAudio = new Audio('/sounds/notification.mp3');
+notificationAudio.id = 'notification-audio';
+notificationAudio.preload = 'auto';
+
+// Configurar volumen alto para ambos
+squirtleAudio.volume = 1.0;
+notificationAudio.volume = 1.0;
+
+/**
+ * Función simple para reproducir un sonido
+ */
+function playSound(audioElement) {
+  console.log('⏯️ Intentando reproducir sonido...');
+  
+  // Reiniciar el audio para asegurar que se reproduzca desde el principio
+  audioElement.currentTime = 0;
+  
+  // Intentar reproducir
+  const playPromise = audioElement.play();
+  
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      console.log('✅ Reproducción de audio iniciada correctamente');
+      return true;
+    }).catch(error => {
+      console.error('❌ Error reproduciendo audio:', error);
+      // Intento alternativo con un clic automático para desbloquear el audio
+      if (error.name === 'NotAllowedError') {
+        console.warn('🔓 Intentando desbloquear audio con interacción simulada...');
+        // Muchos navegadores requieren interacción del usuario
+      }
+      return false;
+    });
+  }
+  
+  return true;
 }
 
-// Reproducir el sonido Squirtle
+// Función global para reproducir el sonido Squirtle
 window.playSquirtleSound = function() {
-  return playSound('/sounds/squirtle.mp3');
+  console.log('🔊 Reproduciendo sonido Squirtle');
+  return playSound(squirtleAudio);
 };
 
-// Reproducir sonido de notificación de pago completado
+// Función global para reproducir el sonido de notificación
 window.playPaymentCompletedSound = function() {
-  return playSound('/sounds/notification.mp3');
+  console.log('🔊 Reproduciendo sonido de notificación');
+  return playSound(notificationAudio);
 };
 
-// Exportar las funciones
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    playSound,
-    playSquirtleSound: window.playSquirtleSound,
-    playPaymentCompletedSound: window.playPaymentCompletedSound
-  };
-}
+// Desbloquear audio en el primer clic
+document.addEventListener('click', function unlockAudio() {
+  console.log('👆 Evento de clic detectado, desbloqueando audio...');
+  
+  // Intentar reproducir y pausar rápidamente para desbloquear
+  const silent = new Audio();
+  silent.play().then(() => {
+    silent.pause();
+    console.log('🔓 Audio desbloqueado por interacción del usuario');
+    
+    // Precargamos los sonidos reales
+    squirtleAudio.load();
+    notificationAudio.load();
+    
+    // Eliminar el evento después del primer clic
+    document.removeEventListener('click', unlockAudio);
+  }).catch(err => {
+    console.error('❌ No se pudo desbloquear el audio:', err);
+  });
+});
 
-console.log('Sistema de notificaciones de audio cargado correctamente');
+console.log('🎵 Sistema de notificaciones de audio v2 cargado correctamente');
