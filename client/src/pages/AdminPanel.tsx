@@ -694,6 +694,10 @@ export default function AdminPanel(_props: RouteComponentProps) {
   
   return (
     <div className="min-h-screen bg-gray-100 p-4">
+      {/* Elementos de audio ocultos */}
+      <audio ref={newUserAudioRef} src="/sounds/squirtle.mp3" preload="auto" />
+      <audio ref={completedPaymentAudioRef} src="/sounds/notification.mp3" preload="auto" />
+      
       {/* Contenedor de notificaciones */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {notifications.map(notification => (
