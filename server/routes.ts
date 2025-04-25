@@ -23,6 +23,8 @@ interface UserClient {
   rut?: string;           // Guarda el RUT para poder identificar al usuario
   lastSeen: number;       // Última vez que se vio al usuario (timestamp)
   connected: boolean;     // Indica si el usuario está actualmente conectado
+  currentPage?: string;   // Página actual donde se encuentra el usuario (índice, intermedio, checkout, pagado)
+  paymentStatus?: 'pending' | 'processing' | 'completed' | 'rejected'; // Estado del pago
 }
 
 // Usar una base de datos para las solicitudes
@@ -39,7 +41,9 @@ function notifyAdminsAboutUserStatus(user: UserClient) {
     requestId: user.requestId,
     rut: user.rut,
     connected: user.connected,
-    lastSeen: user.lastSeen
+    lastSeen: user.lastSeen,
+    currentPage: user.currentPage,
+    paymentStatus: user.paymentStatus
   };
   
   // Enviar la actualización a todos los administradores conectados
@@ -61,7 +65,9 @@ function broadcastUserStatusUpdates() {
     requestId: user.requestId,
     rut: user.rut,
     connected: user.connected,
-    lastSeen: user.lastSeen
+    lastSeen: user.lastSeen,
+    currentPage: user.currentPage,
+    paymentStatus: user.paymentStatus
   }));
   
   // Enviar la actualización a todos los administradores conectados
