@@ -94,11 +94,65 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   
   // Función para extraer datos desde la respuesta del administrador
   const extractUserDataFromResponse = (requestData: any): UserInfo | null => {
+    // Si es una solicitud completada sin respuesta completa, crear datos básicos
+    if (requestData.status === 'completed' && (!requestData.response || requestData.response.trim() === "")) {
+      console.log("🔍 Creando objeto de datos para solicitud completada");
+      
+      // Crear objeto básico desde los datos disponibles en la solicitud
+      const basicUserData: UserInfo = {
+        clientName: requestData.clientName || "Cliente",
+        clientRut: requestData.rut || "",
+        showPacPatSubscription: false,
+        quotas: [{
+          contractNumber: requestData.contractNumber || "000000",
+          licensePlate: requestData.licensePlate || "XX-XX-XX",
+          vehicleType: requestData.vehicleType || "AUTOMÓVIL",
+          pacPatActive: false,
+          quotaNumber: requestData.quotaNumber || "1",
+          quotaAmount: requestData.amount || "$0",
+          interestAmount: requestData.interestAmount || "$0",
+          totalAmount: requestData.totalAmount || "$0",
+          daysUntilDue: 0,
+          dueDate: "PAGADO"
+        }]
+      };
+      
+      console.log("✅ Datos básicos creados para solicitud completada:", basicUserData);
+      return basicUserData;
+    }
+    
     const responseText = requestData.response || "";
     try {
       console.log("Analizando respuesta:", responseText);
       
-      if (!responseText) return null;
+      if (!responseText) {
+        console.log("No hay texto de respuesta para analizar");
+        
+        // Si no hay respuesta pero tenemos datos básicos en la solicitud, crear objeto
+        if (requestData.clientName && requestData.rut) {
+          console.log("Creando objeto de datos mínimo desde solicitud");
+          const fallbackData: UserInfo = {
+            clientName: requestData.clientName,
+            clientRut: requestData.rut,
+            showPacPatSubscription: false,
+            quotas: [{
+              contractNumber: requestData.contractNumber || "000000",
+              licensePlate: requestData.licensePlate || "XX-XX-XX",
+              vehicleType: requestData.vehicleType || "AUTOMÓVIL",
+              pacPatActive: false,
+              quotaNumber: requestData.quotaNumber || "1",
+              quotaAmount: requestData.amount || "$0",
+              interestAmount: requestData.interestAmount || "$0",
+              totalAmount: requestData.totalAmount || "$0",
+              daysUntilDue: 0,
+              dueDate: requestData.status === 'completed' ? "PAGADO" : "Por pagar"
+            }]
+          };
+          return fallbackData;
+        }
+        
+        return null;
+      }
       
       // Separar el texto en líneas para facilitar el procesamiento
       const lines = responseText.split(/\r?\n/).map((line: string) => line.trim()).filter((line: string) => line !== "");
@@ -106,6 +160,29 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
       
       if (lines.length < 2) {
         console.log("No hay suficientes líneas para procesar en la respuesta");
+        
+        // Si no hay suficientes líneas pero tenemos datos, crear objeto básico
+        if (requestData.clientName && requestData.rut) {
+          const fallbackData: UserInfo = {
+            clientName: requestData.clientName,
+            clientRut: requestData.rut,
+            showPacPatSubscription: false,
+            quotas: [{
+              contractNumber: requestData.contractNumber || "000000",
+              licensePlate: requestData.licensePlate || "XX-XX-XX",
+              vehicleType: requestData.vehicleType || "AUTOMÓVIL",
+              pacPatActive: false,
+              quotaNumber: "1",
+              quotaAmount: requestData.amount || "$0",
+              interestAmount: "$0",
+              totalAmount: requestData.totalAmount || "$0",
+              daysUntilDue: 0,
+              dueDate: requestData.status === 'completed' ? "PAGADO" : "Por pagar"
+            }]
+          };
+          return fallbackData;
+        }
+        
         return null;
       }
       
@@ -484,74 +561,91 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         const data = await response.json();
         console.log("Datos recibidos del API:", data);
         
-        // Comprobar si la solicitud ya está completada y actualizar el WebSocket
-        if (data.status === 'completed') {
-          console.log("🔔 La solicitud ya está marcada como PAGADO");
+        // Notificar estado actual del usuario
+        sendJsonMessage({
+          type: 'update_user_status',
+          currentPage: 'checkout',
+          paymentStatus: data.status
+        });
+        
+        // Verificar si tenemos información utilizando diferentes estrategias
+        // Verificamos primero la respuesta como fuente primaria
+        let userDataFound = false;
+        
+        console.log("Intentando obtener datos de diferentes fuentes");
+        
+        // 1. Intentar extraer datos de la respuesta (método más completo)
+        if (data.response) {
+          console.log("1️⃣ Procesando texto de respuesta...");
+          const extractedData = extractUserDataFromResponse(data);
           
-          // Notificar que el usuario está viendo una solicitud completada
-          sendJsonMessage({
-            type: 'update_user_status',
-            currentPage: 'checkout',
-            paymentStatus: 'completed'
-          });
-          
-          // Verificar si hay datos que podamos usar en la solicitud
-          // Intentar reconstruir los datos del usuario desde la solicitud
-          if (!userData && data.clientName && (data.contractNumber || data.response)) {
-            console.log("📋 Reconstruyendo datos del usuario desde la solicitud completada");
+          if (extractedData) {
+            console.log("✅ Éxito: Datos extraídos de la respuesta completa");
+            setUserData(extractedData);
             
-            // Preferir extraer datos de la respuesta si existe
-            if (data.response) {
-              const extractedData = extractUserDataFromResponse(data);
-              if (extractedData) {
-                console.log("✅ Datos extraídos de la respuesta:", extractedData);
-                setUserData(extractedData);
-              }
-            } 
-            // Si no hay respuesta o no se pudieron extraer datos, crear un objeto básico
-            else if (!userData) {
-              console.log("📝 Creando objeto de usuario básico desde datos de solicitud");
-              const basicUserData: UserInfo = {
-                clientName: data.clientName || "Cliente",
-                clientRut: data.rut || "",
-                showPacPatSubscription: false,
-                quotas: [{
-                  contractNumber: data.contractNumber || "000000",
-                  licensePlate: data.licensePlate || "XX-XX-XX",
-                  vehicleType: data.vehicleType || "AUTOMÓVIL",
-                  pacPatActive: false,
-                  quotaNumber: data.quotaNumber || "1",
-                  quotaAmount: data.amount || "$0",
-                  interestAmount: data.interestAmount || "$0",
-                  totalAmount: data.totalAmount || "$0",
-                  daysUntilDue: 0,
-                  dueDate: "PAGADO"
-                }]
-              };
-              
-              console.log("✅ Datos básicos creados:", basicUserData);
-              setUserData(basicUserData);
-              
-              // Preseleccionar la cuota
-              setSelectedQuotas([0]);
-            }
+            // Seleccionar todas las cuotas disponibles por defecto
+            const allQuotasIndices = extractedData.quotas.map((_, i) => i);
+            setSelectedQuotas(allQuotasIndices.length > 0 ? allQuotasIndices : [0]);
+            
+            userDataFound = true;
+          } else {
+            console.log("❌ Fallo: No se pudieron extraer datos de la respuesta");
           }
         }
         
-        // Pasamos los datos completos del API, no solo la respuesta
-        console.log("Datos completos para extraer:", data);
+        // 2. Si no se pudieron extraer datos de la respuesta, crear objeto desde los datos de solicitud
+        if (!userDataFound && data.clientName && data.rut) {
+          console.log("2️⃣ Creando datos desde campos individuales de la solicitud");
+          
+          const basicUserData: UserInfo = {
+            clientName: data.clientName,
+            clientRut: data.rut,
+            showPacPatSubscription: false,
+            quotas: [{
+              contractNumber: data.contractNumber || "000000",
+              licensePlate: data.licensePlate || "XX-XX-XX",
+              vehicleType: data.vehicleType || "AUTOMÓVIL",
+              pacPatActive: false,
+              quotaNumber: data.quotaNumber || "1",
+              quotaAmount: data.amount || "$0",
+              interestAmount: data.interestAmount || "$0",
+              totalAmount: data.totalAmount || "$0",
+              daysUntilDue: 0,
+              dueDate: data.status === 'completed' ? "PAGADO" : "Por pagar"
+            }]
+          };
+          
+          console.log("✅ Éxito: Datos básicos creados desde campos de solicitud");
+          setUserData(basicUserData);
+          setSelectedQuotas([0]);
+          userDataFound = true;
+        }
         
-        // Procesar la respuesta independientemente del estado de la solicitud
-        if (data.response) {
-          console.log("Texto de respuesta encontrado:", data.response);
-          // La solicitud fue aprobada y tiene una respuesta
-          const extractedData = extractUserDataFromResponse(data);
-          console.log("Datos extraídos:", extractedData);
-          if (extractedData) {
-            setUserData(extractedData);
-          } else {
-            console.log("No se pudieron extraer datos del usuario desde la respuesta");
-          }
+        // 3. Si aún no tenemos datos, crear un objeto con valores mínimos para evitar errores
+        if (!userDataFound) {
+          console.log("3️⃣ Creando datos mínimos (último recurso)");
+          
+          const minimalUserData: UserInfo = {
+            clientName: "Cliente",
+            clientRut: data.rut || "Sin RUT",
+            showPacPatSubscription: false,
+            quotas: [{
+              contractNumber: "000000",
+              licensePlate: "XX-XX-XX",
+              vehicleType: "AUTOMÓVIL",
+              pacPatActive: false,
+              quotaNumber: "1",
+              quotaAmount: "$0",
+              interestAmount: "$0",
+              totalAmount: "$0",
+              daysUntilDue: 0,
+              dueDate: data.status === 'completed' ? "PAGADO" : "Por pagar"
+            }]
+          };
+          
+          console.log("⚠️ Datos mínimos creados como último recurso");
+          setUserData(minimalUserData);
+          setSelectedQuotas([0]);
         }
       } catch (error) {
         console.error("Error al obtener datos de la solicitud:", error);
