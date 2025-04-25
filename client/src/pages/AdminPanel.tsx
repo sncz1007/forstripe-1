@@ -39,6 +39,16 @@ export default function AdminPanel(_props: RouteComponentProps) {
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<PaymentRequest | null>(null);
   const [response, setResponse] = useState('');
+  
+  // Estado para los usuarios en línea
+  interface OnlineUser {
+    clientId: string;
+    requestId?: string;
+    rut?: string;
+    connected: boolean;
+    lastSeen: number;
+  }
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,13 +121,31 @@ export default function AdminPanel(_props: RouteComponentProps) {
     }
   };
 
+  // Función para cargar usuarios en línea
+  const fetchOnlineUsers = async () => {
+    try {
+      console.log('Obteniendo usuarios conectados...');
+      const response = await fetch('/api/online-users');
+      if (!response.ok) {
+        throw new Error('Error al obtener usuarios conectados');
+      }
+      const data = await response.json();
+      console.log('Usuarios conectados:', data);
+      setOnlineUsers(data.users || []);
+    } catch (error) {
+      console.error('Error fetching online users:', error);
+    }
+  };
+
   // Efecto para cargar solicitudes al iniciar
   useEffect(() => {
     fetchRequests();
+    fetchOnlineUsers();
     
-    // Configurar un intervalo para actualizar las solicitudes cada 5 segundos
+    // Configurar un intervalo para actualizar las solicitudes y usuarios conectados cada 5 segundos
     const interval = setInterval(() => {
       fetchRequests();
+      fetchOnlineUsers();
     }, 5000);
     
     return () => clearInterval(interval);
@@ -142,6 +170,31 @@ export default function AdminPanel(_props: RouteComponentProps) {
             console.log('Actualizando solicitud seleccionada:', data.request);
             setSelectedRequest(data.request);
           }
+        }
+        
+        // Procesar actualizaciones de estado de usuarios
+        else if (data.type === 'users_status_list') {
+          console.log('Recibida lista de usuarios conectados:', data.users);
+          setOnlineUsers(data.users || []);
+        }
+        
+        // Procesar actualización de un usuario específico
+        else if (data.type === 'user_status_update') {
+          console.log('Actualización de estado de usuario:', data.user);
+          setOnlineUsers(prev => {
+            // Buscar si el usuario ya existe en la lista
+            const userIndex = prev.findIndex(u => u.clientId === data.user.clientId);
+            
+            if (userIndex !== -1) {
+              // Actualizar usuario existente
+              const updated = [...prev];
+              updated[userIndex] = data.user;
+              return updated;
+            } else {
+              // Agregar nuevo usuario
+              return [...prev, data.user];
+            }
+          });
         }
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
@@ -434,10 +487,24 @@ export default function AdminPanel(_props: RouteComponentProps) {
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-7xl mx-auto">
         <header className="bg-white p-4 rounded-lg shadow mb-6">
-          <h1 className="text-2xl font-bold text-primary">Panel de Administración</h1>
-          <p className="text-sm text-gray-500">
-            Estado de la conexión: {status === 'open' ? 'Conectado' : status}
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-primary">Panel de Administración</h1>
+              <p className="text-sm text-gray-500">
+                Estado de la conexión: {status === 'open' ? 'Conectado' : status}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="bg-white shadow rounded-lg p-2">
+                <div className="flex items-center">
+                  <span className="inline-flex h-3 w-3 rounded-full bg-green-500 mr-2"></span>
+                  <span className="text-sm font-medium">
+                    {onlineUsers.filter(u => u.connected).length} usuarios en línea
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </header>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
