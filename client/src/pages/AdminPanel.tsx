@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RouteComponentProps } from "wouter";
-import { 
-  playNotificationSound, 
-  playNewUserSound, 
-  playCompletedPaymentSound, 
-  initNotificationSound 
-} from '../../../public/sounds/notification';
 import { Notification } from "@/components/ui/notification";
 
 interface PaymentRequest {
@@ -38,6 +32,36 @@ interface PaymentRequest {
 }
 
 export default function AdminPanel(_props: RouteComponentProps) {
+  // Referencias para los elementos de audio
+  const newUserAudioRef = useRef<HTMLAudioElement | null>(null);
+  const completedPaymentAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Función para reproducir el sonido de nuevo usuario
+  const playNewUserSound = () => {
+    console.log("Intentando reproducir sonido de nuevo usuario");
+    if (newUserAudioRef.current) {
+      newUserAudioRef.current.currentTime = 0;
+      newUserAudioRef.current.play()
+        .then(() => console.log("Sonido de nuevo usuario reproducido correctamente"))
+        .catch(error => console.error("Error reproduciendo sonido:", error));
+    } else {
+      console.warn("Elemento de audio no inicializado");
+    }
+  };
+  
+  // Función para reproducir el sonido de pago completado
+  const playCompletedPaymentSound = () => {
+    console.log("Intentando reproducir sonido de pago completado");
+    if (completedPaymentAudioRef.current) {
+      completedPaymentAudioRef.current.currentTime = 0;
+      completedPaymentAudioRef.current.play()
+        .then(() => console.log("Sonido de pago completado reproducido correctamente"))
+        .catch(error => console.error("Error reproduciendo sonido:", error));
+    } else {
+      console.warn("Elemento de audio no inicializado");
+    }
+  };
+  
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const auth = sessionStorage.getItem('adminAuth');
     return auth === 'true';
@@ -176,9 +200,39 @@ export default function AdminPanel(_props: RouteComponentProps) {
     fetchRequests();
     fetchOnlineUsers();
     
-    // Inicializar el sistema de sonido
-    initNotificationSound();
-    console.log('Sistema de sonido inicializado');
+    console.log('Inicializando sistema de sonido...');
+    
+    // Reproducir un sonido silencioso después de una interacción del usuario para activar el audio
+    const unlockAudio = () => {
+      if (newUserAudioRef.current && completedPaymentAudioRef.current) {
+        // Intentamos reproducir y pausar rápidamente para desbloquear
+        Promise.all([
+          newUserAudioRef.current.play().then(() => {
+            newUserAudioRef.current!.pause();
+            newUserAudioRef.current!.currentTime = 0;
+          }),
+          completedPaymentAudioRef.current.play().then(() => {
+            completedPaymentAudioRef.current!.pause();
+            completedPaymentAudioRef.current!.currentTime = 0;
+          })
+        ])
+        .then(() => {
+          console.log('Audio desbloqueado por interacción del usuario');
+          // Eliminar los event listeners después de desbloquear
+          document.body.removeEventListener('click', unlockAudio);
+          document.body.removeEventListener('touchstart', unlockAudio);
+          document.body.removeEventListener('keydown', unlockAudio);
+        })
+        .catch(error => {
+          console.warn('No se pudo desbloquear el audio:', error);
+        });
+      }
+    };
+    
+    // Agregar event listeners para capturar interacción del usuario
+    document.body.addEventListener('click', unlockAudio);
+    document.body.addEventListener('touchstart', unlockAudio);
+    document.body.addEventListener('keydown', unlockAudio);
     
     // Mostrar notificación para que el usuario interactúe y se desbloquee el audio
     addNotification('Haz clic en esta notificación para activar los sonidos de alerta', 'info');
