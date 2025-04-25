@@ -31,6 +31,53 @@ const paymentRequestsCache: PaymentRequest[] = [];
 const adminClients: AdminClient[] = [];
 const userClients: UserClient[] = [];
 
+// Función para notificar a todos los administradores sobre el estado de un usuario
+function notifyAdminsAboutUserStatus(user: UserClient) {
+  // Preparar información limitada para enviar (no enviar el objeto WebSocket)
+  const userInfo = {
+    clientId: user.clientId,
+    requestId: user.requestId,
+    rut: user.rut,
+    connected: user.connected,
+    lastSeen: user.lastSeen
+  };
+  
+  // Enviar la actualización a todos los administradores conectados
+  adminClients.forEach(admin => {
+    if (admin.ws.readyState === WebSocket.OPEN) {
+      admin.ws.send(JSON.stringify({
+        type: 'user_status_update',
+        user: userInfo
+      }));
+    }
+  });
+}
+
+// Función para enviar periódicamente las actualizaciones de estado de todos los usuarios
+function broadcastUserStatusUpdates() {
+  // Crear un array con la información de todos los usuarios (sin el objeto WebSocket)
+  const usersInfo = userClients.map(user => ({
+    clientId: user.clientId,
+    requestId: user.requestId,
+    rut: user.rut,
+    connected: user.connected,
+    lastSeen: user.lastSeen
+  }));
+  
+  // Enviar la actualización a todos los administradores conectados
+  adminClients.forEach(admin => {
+    if (admin.ws.readyState === WebSocket.OPEN) {
+      admin.ws.send(JSON.stringify({
+        type: 'users_status_list',
+        users: usersInfo
+      }));
+    }
+  });
+}
+
+// Programar actualizaciones periódicas cada 30 segundos
+setInterval(broadcastUserStatusUpdates, 30 * 1000);
+
 // DEBUG: Create a test payment request
 const testId = 'test-id-123';
 const testRequest: PaymentRequest = {
@@ -408,6 +455,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API para obtener el estado de los usuarios conectados
+  app.get("/api/online-users", (_req: Request, res: Response) => {
+    try {
+      // Filtrar y formatear la información de usuarios
+      const onlineUsers = userClients.map(user => ({
+        clientId: user.clientId,
+        requestId: user.requestId,
+        rut: user.rut,
+        connected: user.connected,
+        lastSeen: user.lastSeen
+      }));
+      
+      console.log(`Enviando información de ${onlineUsers.length} usuarios conectados`);
+      
+      return res.json({
+        total: onlineUsers.length,
+        connectedCount: onlineUsers.filter(u => u.connected).length,
+        users: onlineUsers
+      });
+    } catch (error) {
+      console.error("Error obteniendo usuarios conectados:", error);
+      return res.status(500).json({ error: "Failed to get online users" });
+    }
+  });
+  
   // API para actualizar solicitudes (para el panel de admin)
   app.post("/api/payment-request/:id/update", async (req: Request, res: Response) => {
     const { id } = req.params;
@@ -738,6 +810,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       userClients.push(userClient);
       console.log(`Active user clients: ${userClients.length}`);
       
+      // Notificar a los administradores sobre el nuevo usuario
+      notifyAdminsAboutUserStatus(userClient);
+      
       ws.on('message', (message) => {
         try {
           const data = JSON.parse(message.toString());
@@ -762,9 +837,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ws.on('close', () => {
         const index = userClients.findIndex(c => c.ws === ws);
         if (index !== -1) {
-          userClients.splice(index, 1);
+          // Marcar como desconectado en lugar de eliminar
+          userClients[index].connected = false;
+          userClients[index].lastSeen = Date.now();
+          
+          // Notificar a todos los administradores sobre el cambio de estado
+          notifyAdminsAboutUserStatus(userClients[index]);
+          
+          // Mantener el usuario en la lista por un tiempo antes de eliminarlo
+          // para que aparezca como "recientemente desconectado" en el panel
+          setTimeout(() => {
+            const currentIndex = userClients.findIndex(c => c.clientId === userClients[index].clientId);
+            if (currentIndex !== -1 && !userClients[currentIndex].connected) {
+              userClients.splice(currentIndex, 1);
+              console.log(`Usuario ${userClients[index].rut || 'anónimo'} eliminado después de 5 minutos de inactividad`);
+            }
+          }, 5 * 60 * 1000); // 5 minutos
         }
-        console.log('User client disconnected');
+        console.log('Usuario desconectado');
       });
     }
   });
