@@ -494,6 +494,48 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
             currentPage: 'checkout',
             paymentStatus: 'completed'
           });
+          
+          // Verificar si hay datos que podamos usar en la solicitud
+          // Intentar reconstruir los datos del usuario desde la solicitud
+          if (!userData && data.clientName && (data.contractNumber || data.response)) {
+            console.log("📋 Reconstruyendo datos del usuario desde la solicitud completada");
+            
+            // Preferir extraer datos de la respuesta si existe
+            if (data.response) {
+              const extractedData = extractUserDataFromResponse(data);
+              if (extractedData) {
+                console.log("✅ Datos extraídos de la respuesta:", extractedData);
+                setUserData(extractedData);
+              }
+            } 
+            // Si no hay respuesta o no se pudieron extraer datos, crear un objeto básico
+            else if (!userData) {
+              console.log("📝 Creando objeto de usuario básico desde datos de solicitud");
+              const basicUserData: UserInfo = {
+                clientName: data.clientName || "Cliente",
+                clientRut: data.rut || "",
+                showPacPatSubscription: false,
+                quotas: [{
+                  contractNumber: data.contractNumber || "000000",
+                  licensePlate: data.licensePlate || "XX-XX-XX",
+                  vehicleType: data.vehicleType || "AUTOMÓVIL",
+                  pacPatActive: false,
+                  quotaNumber: data.quotaNumber || "1",
+                  quotaAmount: data.amount || "$0",
+                  interestAmount: data.interestAmount || "$0",
+                  totalAmount: data.totalAmount || "$0",
+                  daysUntilDue: 0,
+                  dueDate: "PAGADO"
+                }]
+              };
+              
+              console.log("✅ Datos básicos creados:", basicUserData);
+              setUserData(basicUserData);
+              
+              // Preseleccionar la cuota
+              setSelectedQuotas([0]);
+            }
+          }
         }
         
         // Pasamos los datos completos del API, no solo la respuesta
@@ -883,10 +925,57 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   }
   
   if (!userData) {
+    // Intentar recuperar el requestId para verificar si es una solicitud completada
+    const requestId = sessionStorage.getItem('paymentRequestId');
+    if (requestId) {
+      // Podemos crear un objeto userData básico para mostrar algo
+      console.log("🔍 Creando objeto básico para mostrar en solicitud completada");
+      
+      // Al volver asincrónico, obtenemos los datos aquí
+      fetch(`/api/payment-request/${requestId}`)
+        .then(response => response.json())
+        .then(data => {
+          // Si la solicitud está completada, crear un objeto básico
+          if (data.status === 'completed') {
+            console.log("✅ Solicitud completada encontrada, creando datos básicos");
+            const basicUserData: UserInfo = {
+              clientName: data.clientName || "Cliente",
+              clientRut: data.rut || "",
+              showPacPatSubscription: false,
+              quotas: [{
+                contractNumber: data.contractNumber || "000000",
+                licensePlate: data.licensePlate || "XX-XX-XX",
+                vehicleType: data.vehicleType || "AUTOMÓVIL",
+                pacPatActive: false,
+                quotaNumber: data.quotaNumber || "1",
+                quotaAmount: data.amount || "$0",
+                interestAmount: data.interestAmount || "$0",
+                totalAmount: data.totalAmount || "$0",
+                daysUntilDue: 0,
+                dueDate: "PAGADO"
+              }]
+            };
+            
+            setUserData(basicUserData);
+            setSelectedQuotas([0]);
+          }
+        })
+        .catch(error => {
+          console.error("Error obteniendo datos de solicitud:", error);
+        });
+    }
+    
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <LoadingSpinner size="large" />
         <p className="mt-4 text-gray-600">Cargando información del cliente...</p>
+        <p className="text-gray-500 mt-2">Si este mensaje persiste por más de 10 segundos, puede intentar volver al inicio</p>
+        <button 
+          onClick={() => window.location.href = '/'}
+          className="mt-4 px-4 py-2 bg-[#0099CD] text-white rounded-md hover:bg-[#0089c7]"
+        >
+          Volver al inicio
+        </button>
       </div>
     );
   }
