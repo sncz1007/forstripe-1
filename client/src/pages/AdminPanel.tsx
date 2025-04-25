@@ -649,7 +649,17 @@ export default function AdminPanel(_props: RouteComponentProps) {
                           </p>
                           {user.currentPage && (
                             <p className="text-xs ml-4 font-medium">
-                              Página actual: <span className="text-blue-600">{user.currentPage}</span>
+                              Página actual: {user.currentPage === 'pasarela_pago' ? (
+                                <span className="text-orange-600 font-bold">EN PASARELA DE PAGO</span>
+                              ) : (
+                                <span className="text-blue-600">{
+                                  user.currentPage === 'indice' ? 'Ingreso RUT' :
+                                  user.currentPage === 'intermedio' ? 'Selección de proveedor' :
+                                  user.currentPage === 'checkout' ? 'Selección de cuotas' :
+                                  user.currentPage === 'pagado' ? 'Comprobante de pago' :
+                                  user.currentPage
+                                }</span>
+                              )}
                             </p>
                           )}
                           {user.paymentStatus && (
