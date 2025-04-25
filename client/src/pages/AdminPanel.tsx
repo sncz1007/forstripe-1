@@ -61,6 +61,22 @@ export default function AdminPanel(_props: RouteComponentProps) {
     type: 'info' | 'success' | 'warning' | 'error';
   }
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
+  
+  // Función para añadir una notificación
+  const addNotification = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    const id = `notification-${Date.now()}`;
+    setNotifications(prev => [...prev, { id, message, type }]);
+    
+    // Quitar la notificación después de 6 segundos
+    setTimeout(() => {
+      removeNotification(id);
+    }, 6000);
+  };
+  
+  // Función para quitar una notificación por su ID
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,6 +260,9 @@ export default function AdminPanel(_props: RouteComponentProps) {
               console.log('¡Nuevo usuario conectado!', data.user);
               // Reproducir el sonido de notificación para alertar al administrador
               playNotificationSound();
+              // Mostrar notificación visual
+              const rutDisplay = data.user.rut ? ` (RUT: ${data.user.rut})` : '';
+              addNotification(`¡Nuevo usuario conectado!${rutDisplay}`, 'info');
               return [...prev, data.user];
             }
           });
@@ -312,8 +331,12 @@ export default function AdminPanel(_props: RouteComponentProps) {
             playNotificationSound();
             console.log(`🔔 ¡IMPORTANTE! La solicitud ${data.request.id} ha sido PAGADA`);
             
-            // También podemos mostrar una alerta (opcional)
-            // alert(`La solicitud ${data.request.id} ha sido PAGADA`);
+            // Mostrar notificación visual
+            const clientInfo = data.request.clientName || data.request.rut 
+              ? `Cliente: ${data.request.clientName || ''} ${data.request.rut || ''}`
+              : '';
+            
+            addNotification(`¡Pago completado! ${clientInfo}`, 'success');
           }
         }
       } catch (err) {
@@ -605,6 +628,18 @@ export default function AdminPanel(_props: RouteComponentProps) {
   
   return (
     <div className="min-h-screen bg-gray-100 p-4">
+      {/* Contenedor de notificaciones */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {notifications.map(notification => (
+          <Notification
+            key={notification.id}
+            message={notification.message}
+            type={notification.type}
+            onClose={() => removeNotification(notification.id)}
+          />
+        ))}
+      </div>
+      
       <div className="max-w-7xl mx-auto">
         <header className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="flex justify-between items-center">
