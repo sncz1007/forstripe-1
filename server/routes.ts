@@ -883,6 +883,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }));
             }
           }
+          
+          // Manejar la actualización de estado del usuario (cambio de página)
+          else if (data.type === 'update_user_status') {
+            console.log(`📱 Usuario ${userClient.clientId} actualizó su estado:`, data);
+            
+            // Actualizar página actual
+            if (data.currentPage) {
+              userClient.currentPage = data.currentPage;
+              
+              // Si el usuario va a la pasarela de pago, actualizar su estado
+              if (data.currentPage === 'pasarela_pago') {
+                console.log(`⚠️ Usuario ${userClient.clientId} está yendo a la pasarela de pago`);
+                userClient.paymentStatus = 'processing';
+              }
+              
+              // Si está en la página pagado, marcar como completado
+              else if (data.currentPage === 'pagado') {
+                userClient.paymentStatus = 'completed';
+              }
+              
+              // Actualizar la marca de tiempo
+              userClient.lastSeen = Date.now();
+              
+              // Notificar a todos los administradores sobre el cambio de estado
+              notifyAdminsAboutUserStatus(userClient);
+            }
+          }
         } catch (err) {
           console.error('Error parsing user message:', err);
         }
