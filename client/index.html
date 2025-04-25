@@ -12,56 +12,12 @@
     <link rel="apple-touch-icon" href="/favicon.png?v=20250425forum">
     <link rel="shortcut icon" href="/favicon.png?v=20250425forum" type="image/png">
     
-    <!-- Script para habilitar reproducción de audio en el documento -->
-    <script>
-      // Crear elementos de audio que estarán disponibles globalmente
-      window.addEventListener('DOMContentLoaded', function() {
-        // Crear audio para sonido squirtle
-        const squirtleAudio = document.getElementById('squirtle-audio');
-        if (!squirtleAudio) {
-          const newAudio = document.createElement('audio');
-          newAudio.id = 'squirtle-audio';
-          newAudio.src = '/sounds/squirtle.mp3';
-          newAudio.preload = 'auto';
-          document.body.appendChild(newAudio);
-        }
-        
-        // Crear audio para notificación
-        const notificationAudio = document.getElementById('notification-audio');
-        if (!notificationAudio) {
-          const newAudio = document.createElement('audio');
-          newAudio.id = 'notification-audio';
-          newAudio.src = '/sounds/notification.mp3';
-          newAudio.preload = 'auto';
-          document.body.appendChild(newAudio);
-        }
-        
-        // Añadir las funciones globales para la reproducción
-        window.playSquirtleSound = function() {
-          const audio = document.getElementById('squirtle-audio');
-          if (audio) {
-            audio.currentTime = 0;
-            audio.volume = 1.0;
-            audio.play().catch(e => console.error('Error reproduciendo squirtle:', e));
-            return true;
-          }
-          return false;
-        };
-        
-        window.playPaymentCompletedSound = function() {
-          const audio = document.getElementById('notification-audio');
-          if (audio) {
-            audio.currentTime = 0;
-            audio.volume = 1.0;
-            audio.play().catch(e => console.error('Error reproduciendo notificación:', e));
-            return true;
-          }
-          return false;
-        };
-        
-        console.log('🔊 Sistema de audio inicializado en el documento');
-      });
-    </script>
+    <!-- Sistema de audio - Nueva versión más simple y directa -->
+    <script src="/sounds/sound-player.js?v=20250425"></script>
+    
+    <!-- Elementos de audio precargados -->
+    <audio id="squirtle-audio" src="/sounds/squirtle.mp3" preload="auto" style="display:none"></audio>
+    <audio id="notification-audio" src="/sounds/notification.mp3" preload="auto" style="display:none"></audio>
     
     <!-- Forzar recarga de recursos -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
