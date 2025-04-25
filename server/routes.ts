@@ -452,42 +452,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/payment-requests", async (_req: Request, res: Response) => {
     try {
       // Para evitar problemas de concurrencia, siempre consultamos la base de datos para la lista completa
-      const allRequests = await storage.getAllPaymentRequests();
-      
-      // Filtrar para tener una solicitud única por RUT
-      // Priorizar el orden: 1) completadas, 2) en proceso, 3) más recientes
-      const rutMap = new Map<string, PaymentRequest>();
-      
-      // Ordenar solicitudes por timestamp (más recientes primero)
-      const sortedRequests = [...allRequests].sort((a, b) => 
-        parseInt(b.timestamp) - parseInt(a.timestamp)
-      );
-      
-      // Procesar en orden: primero añadimos todas al mapa
-      for (const request of sortedRequests) {
-        const existingRequest = rutMap.get(request.rut);
-        
-        // Si no existe una solicitud para este RUT, la agregamos
-        if (!existingRequest) {
-          rutMap.set(request.rut, request);
-          continue;
-        }
-        
-        // Si la solicitud existente no está completada y la nueva sí, reemplazamos
-        if (existingRequest.status !== 'completed' && request.status === 'completed') {
-          rutMap.set(request.rut, request);
-          continue;
-        }
-        
-        // Si ambas están completadas o ninguna está completada, mantenemos la más reciente
-        // que ya está garantizado por el orden en que procesamos el array
-      }
-      
-      // Convertir el mapa a un array
-      const uniqueRequests = Array.from(rutMap.values());
-      
-      console.log(`Enviando ${uniqueRequests.length} solicitudes únicas por RUT de un total de ${allRequests.length} a través de API`);
-      return res.json(uniqueRequests);
+      const requests = await storage.getAllPaymentRequests();
+      console.log(`Enviando ${requests.length} solicitudes a través de API`);
+      return res.json(requests);
     } catch (error) {
       console.error("Error fetching payment requests:", error);
       return res.status(500).json({ error: "Failed to fetch payment requests" });
