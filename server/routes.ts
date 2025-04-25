@@ -483,23 +483,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API para limpiar el panel de administración
   app.post("/api/admin/clean", async (_req: Request, res: Response) => {
     try {
-      // Obtener todas las solicitudes actuales
-      const allRequests = await storage.getAllPaymentRequests();
+      // Eliminar todas las solicitudes de la base de datos
+      const deleted = await storage.deleteAllPaymentRequests();
       
-      // Eliminar todas las solicitudes de la base de datos una por una
-      // En una aplicación real, esto podría hacerse con una operación masiva
-      // más eficiente, pero usamos el método existente para simplicidad
-      for (const request of allRequests) {
-        try {
-          // Esta eliminación es simulada y no existente en la interfaz actual,
-          // por lo que creamos un objeto vacío con solo el campo status en "rejected"
-          // para marcar como eliminada la solicitud
-          await storage.updatePaymentRequest(request.id, {
-            status: 'rejected'
-          });
-        } catch (err) {
-          console.error(`Error eliminando solicitud ${request.id}:`, err);
-        }
+      if (!deleted) {
+        throw new Error("No se pudieron eliminar las solicitudes de la base de datos");
       }
       
       // Limpiar los clientes conectados (conservar información de conexión pero borrar asociaciones)

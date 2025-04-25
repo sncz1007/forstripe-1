@@ -136,6 +136,36 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async deletePaymentRequest(id: string): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(paymentRequests)
+        .where(eq(paymentRequests.id, id))
+        .returning({ id: paymentRequests.id });
+      
+      // Si encontramos y eliminamos al menos una fila
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error deleting payment request:", error);
+      return false;
+    }
+  }
+
+  async deleteAllPaymentRequests(): Promise<boolean> {
+    try {
+      // Eliminar todos los registros de la tabla
+      await db
+        .delete(paymentRequests)
+        .returning({ id: paymentRequests.id });
+      
+      console.log("Todas las solicitudes de pago han sido eliminadas de la base de datos");
+      return true;
+    } catch (error) {
+      console.error("Error deleting all payment requests:", error);
+      return false;
+    }
+  }
+
   // Función auxiliar para mapear entre DB y nuestro modelo
   private mapDBToPaymentRequest(dbRequest: DBPaymentRequest): PaymentRequest {
     return {
@@ -218,6 +248,19 @@ export class MemStorage implements IStorage {
     const updatedRequest = { ...this.paymentRequests[index], ...updates };
     this.paymentRequests[index] = updatedRequest;
     return updatedRequest;
+  }
+
+  async deletePaymentRequest(id: string): Promise<boolean> {
+    const index = this.paymentRequests.findIndex(req => req.id === id);
+    if (index === -1) return false;
+    
+    this.paymentRequests.splice(index, 1);
+    return true;
+  }
+
+  async deleteAllPaymentRequests(): Promise<boolean> {
+    this.paymentRequests = [];
+    return true;
   }
 }
 
