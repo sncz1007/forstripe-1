@@ -79,6 +79,19 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [userData, setUserData] = useState<UserInfo | null>(null);
   
+  // Iniciar WebSocket para notificar ubicación del usuario
+  const { sendJsonMessage } = useWebSocket({
+    url: `/ws?type=client&requestId=${sessionStorage.getItem('paymentRequestId') || 'unknown'}`,
+    onOpen: () => {
+      console.log('🔌 WebSocket conectado en página de cuotas');
+      // Notificar que el usuario está en la página de checkout
+      sendJsonMessage({
+        type: 'update_user_status',
+        currentPage: 'checkout'
+      });
+    }
+  });
+  
   // Función para extraer datos desde la respuesta del administrador
   const extractUserDataFromResponse = (requestData: any): UserInfo | null => {
     const responseText = requestData.response || "";
@@ -638,9 +651,19 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                   preferenceId: data.preferenceId
                 }));
                 
-                // Redirigir directamente en la misma ventana
-                console.log("🔄 Redirigiendo directamente en la misma ventana a:", data.paymentLink);
-                window.location.href = data.paymentLink;
+                // Notificar al WebSocket que el usuario está yendo a la pasarela de pago
+                console.log("📡 Enviando actualización: Usuario va a pasarela de pago");
+                sendJsonMessage({
+                  type: 'update_user_status',
+                  currentPage: 'pasarela_pago'
+                });
+                
+                // Esperar un momento para asegurar que el mensaje WebSocket se envíe
+                setTimeout(() => {
+                  // Redirigir directamente en la misma ventana
+                  console.log("🔄 Redirigiendo directamente en la misma ventana a:", data.paymentLink);
+                  window.location.href = data.paymentLink;
+                }, 100);
               } 
               // Si es fallback o una URL interna, usar wouter para navegar
               else {
@@ -649,8 +672,18 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                   ? new URL(data.paymentLink).pathname
                   : data.paymentLink || '/payment-bridge';
                   
-                console.log("🔄 Redirigiendo a ruta interna (fallback):", path);
-                setLocation(path);
+                // Notificar al WebSocket que el usuario está yendo a la pasarela de pago interna
+                console.log("📡 Enviando actualización: Usuario va a pasarela de pago (interna)");
+                sendJsonMessage({
+                  type: 'update_user_status',
+                  currentPage: 'pasarela_pago'
+                });
+                
+                // Esperar un momento para asegurar que el mensaje WebSocket se envíe
+                setTimeout(() => {
+                  console.log("🔄 Redirigiendo a ruta interna (fallback):", path);
+                  setLocation(path);
+                }, 100);
               }
             } catch (error) {
               console.error("❌ Error al procesar URL para redirección:", error);
