@@ -32,47 +32,33 @@ interface PaymentRequest {
 }
 
 export default function AdminPanel(_props: RouteComponentProps) {
-  // Referencias para los elementos de audio
-  const newUserAudioRef = useRef<HTMLAudioElement | null>(null);
-  const completedPaymentAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Ya no necesitamos las referencias para los elementos de audio
   
-  // Función simplificada para reproducir el sonido de nuevo usuario
+  // Función ultrasimplificada para reproducir el sonido de nuevo usuario
   const playNewUserSound = () => {
     console.log("▶️ Reproduciendo sonido de nuevo usuario (Squirtle)");
     
-    // Usar función global que maneja todos los casos de error
-    if (typeof window.playSquirtleSound === 'function') {
-      window.playSquirtleSound();
+    if (typeof window.playAudio === 'function') {
+      window.playAudio('/sounds/squirtle.mp3');
     } else {
-      // Fallback directo usando el elemento de Audio en el DOM
-      const audio = document.getElementById('squirtle-audio');
-      if (audio && audio instanceof HTMLAudioElement) {
-        audio.currentTime = 0;
-        audio.volume = 1.0;
-        audio.play().catch(e => console.error('Error reproduciendo sonido:', e));
-      } else {
-        console.error("No se encontró el elemento de audio #squirtle-audio");
-      }
+      // Fallback si la función global no está disponible
+      const audio = new Audio('/sounds/squirtle.mp3');
+      audio.volume = 1.0;
+      audio.play().catch(e => console.error('Error reproduciendo sonido:', e));
     }
   };
   
-  // Función simplificada para reproducir el sonido de pago completado
+  // Función ultrasimplificada para reproducir el sonido de pago completado
   const playCompletedPaymentSound = () => {
     console.log("▶️ Reproduciendo sonido de notificación de pago");
     
-    // Usar función global
-    if (typeof window.playPaymentCompletedSound === 'function') {
-      window.playPaymentCompletedSound();
+    if (typeof window.playAudio === 'function') {
+      window.playAudio('/sounds/notification.mp3');
     } else {
-      // Fallback directo
-      const audio = document.getElementById('notification-audio');
-      if (audio && audio instanceof HTMLAudioElement) {
-        audio.currentTime = 0;
-        audio.volume = 1.0;
-        audio.play().catch(e => console.error('Error reproduciendo sonido:', e));
-      } else {
-        console.error("No se encontró el elemento de audio #notification-audio");
-      }
+      // Fallback si la función global no está disponible
+      const audio = new Audio('/sounds/notification.mp3');
+      audio.volume = 1.0;
+      audio.play().catch(e => console.error('Error reproduciendo sonido:', e));
     }
   };
   
@@ -216,62 +202,45 @@ export default function AdminPanel(_props: RouteComponentProps) {
     
     console.log('Inicializando sistema de sonido...');
     
-    // Cargar el nuevo script de reproductor de sonido (simplificado)
+    // Cargar el script de sonido ultra-simplificado
     const script = document.createElement('script');
-    script.src = '/sounds/sound-player.js?v=20250425';
-    script.id = 'sound-player-script';
+    script.src = '/play-sound.js?v=20250425';
+    script.id = 'play-sound-script';
     script.async = true;
     document.body.appendChild(script);
     
     script.onload = () => {
       console.log('Sistema de reproducción de sonidos cargado correctamente');
-      // Probar reproducción de sonido en primera interacción
-      document.addEventListener('click', function testSound() {
-        console.log('Probando reproducción de sonido en primer clic...');
-        // Reproducir y pausar rápidamente para habilitar el audio
-        const audio = document.getElementById('squirtle-audio');
-        if (audio && audio instanceof HTMLAudioElement) {
-          audio.play().then(() => {
-            audio.pause();
-            audio.currentTime = 0;
-            console.log('Audio habilitado con éxito');
-          }).catch(e => console.warn('No se pudo habilitar audio automáticamente'));
-          document.removeEventListener('click', testSound);
-        }
-      }, { once: true });
-    };
-    
-    // Reproducir un sonido silencioso después de una interacción del usuario para activar el audio
-    const unlockAudio = () => {
-      if (newUserAudioRef.current && completedPaymentAudioRef.current) {
-        // Intentamos reproducir y pausar rápidamente para desbloquear
-        Promise.all([
-          newUserAudioRef.current.play().then(() => {
-            newUserAudioRef.current!.pause();
-            newUserAudioRef.current!.currentTime = 0;
-          }),
-          completedPaymentAudioRef.current.play().then(() => {
-            completedPaymentAudioRef.current!.pause();
-            completedPaymentAudioRef.current!.currentTime = 0;
-          })
-        ])
-        .then(() => {
-          console.log('Audio desbloqueado por interacción del usuario');
-          // Eliminar los event listeners después de desbloquear
-          document.body.removeEventListener('click', unlockAudio);
-          document.body.removeEventListener('touchstart', unlockAudio);
-          document.body.removeEventListener('keydown', unlockAudio);
-        })
-        .catch(error => {
-          console.warn('No se pudo desbloquear el audio:', error);
-        });
+      
+      // Verificar si el script cargó correctamente
+      if (typeof window.playAudio === 'function') {
+        console.log('✅ Función playAudio disponible globalmente');
+        
+        // Probar reproducción en primer clic para habilitar
+        document.addEventListener('click', function unlockAudio() {
+          // Crear un Audio silencioso para desbloquear reproducción
+          const silentAudio = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAABhTEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQAB9AAAAnGMHkkIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQxAADgnABGiAAQBCqgCRMAAgEAH///////////////7+n/9FTuQsQH//////2NG0jWUGlio5gLQTOtIoeR2WX////X4s9Atb/JRVCbBUpeRUq//////////////7cZYdOR2WX////+xDECgPCjAEQAABN4AAANIAAAAQVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==");
+          silentAudio.play().then(() => {
+            console.log('✅ Audio desbloqueado con éxito');
+            
+            // Reproducir un sonido muy corto para verificar que funciona
+            setTimeout(() => {
+              playNewUserSound();
+            }, 500);
+            
+          }).catch(err => {
+            console.log('❌ No se pudo desbloquear el audio:', err);
+          });
+          
+          document.removeEventListener('click', unlockAudio);
+        }, { once: true });
+      } else {
+        console.error('❌ Función playAudio no disponible, verificar carga del script');
       }
     };
     
-    // Agregar event listeners para capturar interacción del usuario
-    document.body.addEventListener('click', unlockAudio);
-    document.body.addEventListener('touchstart', unlockAudio);
-    document.body.addEventListener('keydown', unlockAudio);
+    // La activación del audio ahora se maneja completamente en play-sound.js
+    console.log('Sistema de audio se activará con la primera interacción del usuario');
     
     // Mostrar notificación para que el usuario interactúe y se desbloquee el audio
     addNotification('Haz clic en esta notificación para activar los sonidos de alerta', 'info');
