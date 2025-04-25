@@ -20,6 +20,9 @@ interface UserClient {
   ws: WebSocket;
   requestId?: string;
   clientId: string;
+  rut?: string;           // Guarda el RUT para poder identificar al usuario
+  lastSeen: number;       // Última vez que se vio al usuario (timestamp)
+  connected: boolean;     // Indica si el usuario está actualmente conectado
 }
 
 // Usar una base de datos para las solicitudes
@@ -676,9 +679,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       // User client
       const clientId = generateId();
-      const userClient: UserClient = { ws, clientId };
+      const userClient: UserClient = { 
+        ws, 
+        clientId, 
+        connected: true,
+        lastSeen: Date.now()
+      };
       
       console.log(`New user client connected with ID: ${clientId}`);
+      
+      // Obtener el RUT del query param si existe
+      const rut = url.searchParams.get('rut');
+      if (rut) {
+        userClient.rut = rut;
+        console.log(`User connected with RUT: ${rut}`);
+      }
       
       if (requestId) {
         console.log(`User client has requestId: ${requestId}`);
