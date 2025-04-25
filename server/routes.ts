@@ -470,7 +470,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestId: user.requestId,
         rut: user.rut,
         connected: user.connected,
-        lastSeen: user.lastSeen
+        lastSeen: user.lastSeen,
+        currentPage: user.currentPage || 'desconocida',
+        paymentStatus: user.paymentStatus || 'pending'
       }));
       
       console.log(`Enviando información de ${onlineUsers.length} usuarios conectados`);
@@ -793,20 +795,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       // User client
       const clientId = generateId();
+      const currentPage = url.searchParams.get('page') || 'indice'; // indice, intermedio, checkout, pagado
       const userClient: UserClient = { 
         ws, 
         clientId, 
         connected: true,
-        lastSeen: Date.now()
+        lastSeen: Date.now(),
+        currentPage,
+        paymentStatus: 'pending'
       };
       
-      console.log(`New user client connected with ID: ${clientId}`);
+      console.log(`New user client connected with ID: ${clientId} en página ${currentPage}`);
       
       // Obtener el RUT del query param si existe
       const rut = url.searchParams.get('rut');
       if (rut) {
         userClient.rut = rut;
         console.log(`User connected with RUT: ${rut}`);
+      }
+      
+      // Si la página es "pagado", actualizamos el estado del pago
+      if (currentPage === 'pagado') {
+        userClient.paymentStatus = 'completed';
+      } else if (currentPage === 'checkout') {
+        userClient.paymentStatus = 'processing';
       }
       
       if (requestId) {
