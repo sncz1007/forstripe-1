@@ -423,9 +423,22 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         const data = await response.json();
         console.log("Datos recibidos del API:", data);
         
+        // Comprobar si la solicitud ya está completada y actualizar el WebSocket
+        if (data.status === 'completed') {
+          console.log("🔔 La solicitud ya está marcada como PAGADO");
+          
+          // Notificar que el usuario está viendo una solicitud completada
+          sendJsonMessage({
+            type: 'update_user_status',
+            currentPage: 'checkout',
+            paymentStatus: 'completed'
+          });
+        }
+        
         // Pasamos los datos completos del API, no solo la respuesta
         console.log("Datos completos para extraer:", data);
         
+        // Procesar la respuesta independientemente del estado de la solicitud
         if (data.response) {
           console.log("Texto de respuesta encontrado:", data.response);
           // La solicitud fue aprobada y tiene una respuesta
@@ -445,7 +458,7 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
     };
     
     fetchRequestData();
-  }, []);
+  }, [sendJsonMessage]);
   
   // Calcular el total a pagar
   const getTotal = () => {
