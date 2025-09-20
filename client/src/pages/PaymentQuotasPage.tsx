@@ -569,36 +569,41 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
         let useFallback = false;
         
         try {
-          // Crear la preferencia usando el componente MercadoPagoSDK
-          const preferenceResult = await createPreference({
-            items: cuotasParaMercadoPago,
-            backUrls: {
-              success: `${urlBase}/payment-success`,
-              failure: `${urlBase}/payment-failure`,
-              pending: `${urlBase}/payment-pending`
-            },
-            description: `Pago de ${cuotasParaMercadoPago.length} cuota(s)`
+          // Obtener el requestId desde sessionStorage
+          const requestId = sessionStorage.getItem('paymentRequestId');
+          if (!requestId) {
+            throw new Error('No se encontró el ID de la solicitud de pago');
+          }
+          
+          // Crear el Payment Intent usando Stripe con el requestId y índices de cuotas seleccionadas
+          const paymentResult = await createPreference({
+            requestId: requestId,
+            selectedQuotaIndices: selectedQuotas
           });
           
-          console.log("✅ Resultado de createPreference:", preferenceResult);
+          console.log("✅ Resultado de createPreference:", paymentResult);
           
-          if (preferenceResult.success) {
-            // Usar la respuesta directa del SDK
-            console.log("✅ Preferencia creada con éxito a través del proxy");
+          if (paymentResult.success) {
+            console.log("✅ Payment Intent creado con éxito");
+            
+            // Guardar el client secret para el checkout de Stripe
+            sessionStorage.setItem('stripeClientSecret', paymentResult.clientSecret);
+            sessionStorage.setItem('paymentIntentId', paymentResult.paymentIntentId);
+            sessionStorage.setItem('totalAmount', paymentResult.amount?.toString() || '0');
             
             data = {
               success: true,
-              paymentLink: preferenceResult.paymentLink,
-              preferenceId: preferenceResult.preferenceId,
+              clientSecret: paymentResult.clientSecret,
+              paymentIntentId: paymentResult.paymentIntentId,
               isFallback: false
             };
             
-            console.log("Respuesta del proxy de MP:", data);
+            console.log("Respuesta de Stripe:", data);
           } else {
-            throw new Error(preferenceResult.error || "Error al crear preferencia con proxy");
+            throw new Error(paymentResult.error || "Error al crear Payment Intent");
           }
-        } catch (proxyError) {
-          console.error("❌ Error usando proxy MP, intentando endpoint fallback:", proxyError);
+        } catch (stripeError) {
+          console.error("❌ Error usando Stripe:", stripeError);
           useFallback = true;
         }
         
@@ -618,7 +623,7 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
           console.log("Respuesta del endpoint original:", data);
         }
         
-        if (data && data.paymentLink) {
+        if (data && (data.paymentLink || data.clientSecret)) {
           console.log("Redirigiendo al enlace de pago:", data.paymentLink);
           // Guardamos el ID de preferencia para referencia futura
           if (data.preferenceId) {
@@ -635,6 +640,13 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
           // Redirigir al enlace de pago con tiempo para asegurar que todo se guarde
           setTimeout(() => {
             try {
+              // Si tenemos un clientSecret de Stripe, ir al checkout de Stripe
+              if (data.clientSecret) {
+                console.log("🚀 Redirigiendo al checkout de Stripe");
+                setLocation('/stripe-checkout');
+                return;
+              }
+              
               // Si es un enlace externo de Mercado Pago
               if (!data.isFallback && data.paymentLink && data.paymentLink.startsWith('http')) {
                 console.log("🚀 Redirigiendo a Mercado Pago (URL externa):", data.paymentLink);

@@ -141,85 +141,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   console.log('✅ Stripe configurado correctamente');
   
-  // Stripe payment intent creation endpoint
-  app.post("/api/create-payment-intent", async (req: Request, res: Response) => {
-    try {
-      const { amount } = req.body;
-      
-      if (!amount || isNaN(amount) || amount <= 0) {
-        return res.status(400).json({ error: "Se requiere un monto válido" });
-      }
-      
-      console.log(`🔄 Creando Payment Intent por: $${amount}`);
-      
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: "usd",
-        metadata: {
-          integration_check: 'accept_a_payment',
-        },
-      });
-      
-      console.log(`✅ Payment Intent creado: ${paymentIntent.id}`);
-      
-      res.json({ 
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id
-      });
-    } catch (error: any) {
-      console.error("❌ Error creando Payment Intent:", error);
-      res.status(500).json({ 
-        error: "Error al crear el intent de pago", 
-        details: error.message 
-      });
-    }
-  });
   
-  // Endpoint para generar enlaces de pago con Stripe
+  // Helper function to safely parse CLP amounts
+  function sanitizeCLPAmount(amountStr: string): number {
+    if (!amountStr) return 0;
+    // Remove everything except digits 
+    const cleanAmount = amountStr.replace(/[^\d]/g, '');
+    if (!cleanAmount) return 0;
+    const amount = parseInt(cleanAmount, 10);
+    return isNaN(amount) ? 0 : amount;
+  }
+
+  // Endpoint para generar enlaces de pago con Stripe  
   app.post("/generar-enlace", async (req: Request, res: Response) => {
     try {
-      const { cuotas } = req.body;
-      console.log('🔍 Cuotas recibidas para pago:', cuotas);
+      const { requestId, selectedQuotaIndices } = req.body;
+      console.log('🔍 Solicitud de pago para requestId:', requestId, 'cuotas:', selectedQuotaIndices);
 
-      if (!cuotas || !Array.isArray(cuotas) || cuotas.length === 0) {
-        console.error('❌ Error: No se proporcionaron cuotas válidas', req.body);
-        return res.status(400).json({ error: 'No se proporcionaron cuotas válidas' });
+      if (!requestId) {
+        return res.status(400).json({ error: 'Se requiere requestId para procesar el pago' });
       }
 
-      // Calcular el total de todas las cuotas
+      if (!selectedQuotaIndices || !Array.isArray(selectedQuotaIndices) || selectedQuotaIndices.length === 0) {
+        return res.status(400).json({ error: 'Se requieren índices de cuotas seleccionadas' });
+      }
+
+      // Obtener la solicitud de pago del storage para validar 
+      const paymentRequest = await storage.getPaymentRequest(requestId);
+      if (!paymentRequest) {
+        return res.status(404).json({ error: 'Solicitud de pago no encontrada' });
+      }
+
+      if (!paymentRequest.response) {
+        return res.status(400).json({ error: 'La solicitud no tiene datos de cuotas disponibles' });
+      }
+
+      // Parsear las cuotas desde el campo response (similar a como lo hace el frontend)
+      const responseText = paymentRequest.response;
+      const lines = responseText.split(/\r?\n/).map((line: string) => line.trim()).filter((line: string) => line !== "");
+      
+      if (lines.length < 2) {
+        return res.status(400).json({ error: 'Datos de cuotas insuficientes en la solicitud' });
+      }
+
+      // Encontrar cuotas en el texto (similar lógica al frontend)
+      const quotaStartIndices: number[] = [];
+      lines.forEach((line: string, index: number) => {
+        if (line.match(/^Cuota\s+N[°o]?\s*\d+$/)) {
+          quotaStartIndices.push(index);
+        }
+      });
+
+      if (quotaStartIndices.length === 0) {
+        return res.status(400).json({ error: 'No se encontraron cuotas válidas en la solicitud' });
+      }
+
+      // Procesar cuotas y calcular total server-side
+      const quotas: any[] = [];
       let totalAmount = 0;
       const itemDescriptions = [];
-      
-      for (const cuota of cuotas) {
-        let unit_price = 0;
-        if (typeof cuota.unit_price === 'number') {
-          unit_price = cuota.unit_price;
-        } else if (cuota.unit_price) {
-          unit_price = parseFloat(String(cuota.unit_price).replace(/[^\d.]/g, ''));
+
+      quotaStartIndices.forEach((startIndex: number, idx: number) => {
+        const endIndex = idx < quotaStartIndices.length - 1 ? quotaStartIndices[idx + 1] : lines.length;
+        const quotaLines = lines.slice(startIndex, endIndex);
+        
+        // Extraer información de la cuota
+        let quotaNumber = "";
+        let totalAmountStr = "$0";
+        
+        // Extraer número de cuota
+        const quotaMatch = lines[startIndex].match(/Cuota\s+N[°o]?\s*(\d+)/);
+        if (quotaMatch) {
+          quotaNumber = quotaMatch[1];
         }
         
-        if (isNaN(unit_price) || unit_price <= 0) {
-          throw new Error(`Precio inválido para cuota "${cuota.title}": ${cuota.unit_price}`);
+        // Buscar el total en las líneas de esta cuota
+        for (let i = 0; i < quotaLines.length; i++) {
+          if (quotaLines[i] === "Total a Pagar" && i + 1 < quotaLines.length) {
+            totalAmountStr = quotaLines[i + 1].trim();
+            break;
+          }
         }
         
-        totalAmount += unit_price;
-        itemDescriptions.push(`${cuota.title || `Cuota ${cuota.quotaNumber || ''}`} - $${unit_price}`);
+        quotas.push({
+          quotaNumber,
+          totalAmount: totalAmountStr
+        });
+      });
+
+      // Validar que los índices seleccionados son válidos
+      for (const idx of selectedQuotaIndices) {
+        if (idx < 0 || idx >= quotas.length) {
+          return res.status(400).json({ error: `Índice de cuota inválido: ${idx}` });
+        }
+      }
+
+      // Calcular total de cuotas seleccionadas
+      for (const idx of selectedQuotaIndices) {
+        const quota = quotas[idx];
+        const amount = sanitizeCLPAmount(quota.totalAmount);
+        if (amount <= 0) {
+          return res.status(400).json({ error: `Monto inválido para cuota ${quota.quotaNumber}: ${quota.totalAmount}` });
+        }
+        totalAmount += amount;
+        itemDescriptions.push(`Cuota N°${quota.quotaNumber} - $${amount.toLocaleString('es-CL')} CLP`);
       }
       
-      console.log(`💲 Total a pagar: $${totalAmount} USD`);
-      
-      // Base de URL para redirecciones
-      const urlBase = `${req.protocol}://${req.get('host')}`;
-      
-      console.log("🔄 Creando Payment Intent con Stripe");
+      if (totalAmount <= 0) {
+        return res.status(400).json({ error: 'El monto total debe ser mayor a 0' });
+      }
+
+      console.log(`💲 Total calculado server-side: $${totalAmount.toLocaleString('es-CL')} CLP`);
       
       // Crear el Payment Intent con Stripe
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(totalAmount * 100), // Convert to cents
-        currency: "usd",
+        amount: totalAmount, // CLP is zero-decimal currency
+        currency: "clp",
+        automatic_payment_methods: {
+          enabled: true,
+        },
         metadata: {
+          requestId: requestId,
           items: itemDescriptions.join(', '),
-          quotas_count: cuotas.length.toString(),
+          quotas_count: selectedQuotaIndices.length.toString(),
         },
       });
       

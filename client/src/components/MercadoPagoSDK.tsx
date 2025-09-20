@@ -2,45 +2,52 @@ import { useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 
 /**
- * Esta función crea una preferencia de pago usando el servidor proxy
- * para evitar problemas de CORS con Mercado Pago
+ * Esta función crea un Payment Intent usando Stripe a través del endpoint /generar-enlace
  */
 export async function createPreference(paymentData: any) {
-  console.log('💲 Creando preferencia a través del proxy');
+  console.log('💲 Creando Payment Intent con Stripe a través de /generar-enlace');
   
   try {
-    const response = await apiRequest(
-      'POST',
-      '/api/mercadopago-proxy',
-      {
-        endpoint: '/checkout/preferences',
-        method: 'POST',
-        body: {
-          items: paymentData.items,
-          back_urls: {
-            success: paymentData.backUrls.success,
-            failure: paymentData.backUrls.failure,
-            pending: paymentData.backUrls.pending,
-          },
-          auto_return: 'approved',
-          statement_descriptor: paymentData.description || 'Forum Pagos',
-          external_reference: `PAYMENT-${Date.now()}`
-        }
-      }
-    );
+    const { requestId, selectedQuotaIndices } = paymentData;
+    
+    if (!requestId) {
+      throw new Error('requestId es requerido para crear el Payment Intent');
+    }
+    
+    if (!selectedQuotaIndices || !Array.isArray(selectedQuotaIndices) || selectedQuotaIndices.length === 0) {
+      throw new Error('selectedQuotaIndices es requerido para crear el Payment Intent');
+    }
+    
+    const response = await fetch('/generar-enlace', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        requestId: requestId,
+        selectedQuotaIndices: selectedQuotaIndices 
+      })
+    });
     
     const data = await response.json();
-    console.log('✅ Preferencia creada:', data);
+    console.log('✅ Payment Intent creado:', data);
     
-    return {
-      success: true,
-      preferenceId: data.id,
-      paymentLink: data.init_point,
-      sandboxPaymentLink: data.sandbox_init_point,
-      data: data
-    };
+    if (data.success) {
+      return {
+        success: true,
+        clientSecret: data.clientSecret,
+        paymentIntentId: data.paymentIntentId,
+        amount: data.amount,
+        data: data
+      };
+    } else {
+      return {
+        success: false,
+        error: data.error || 'Error al crear Payment Intent'
+      };
+    }
   } catch (error) {
-    console.error('❌ Error creando preferencia:', error);
+    console.error('❌ Error creando Payment Intent:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'
@@ -49,51 +56,47 @@ export async function createPreference(paymentData: any) {
 }
 
 /**
- * Hook para usar Mercado Pago en componentes React
+ * Hook para usar Stripe en componentes React
  */
-export function useMercadoPago(preferenceId?: string) {
+export function useMercadoPago() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     const script = document.createElement('script');
-    script.src = 'https://sdk.mercadopago.com/js/v2';
+    script.src = 'https://js.stripe.com/v3/';
     script.async = true;
     
     script.onload = () => {
       try {
-        if (typeof window.MercadoPago === 'undefined') {
-          throw new Error('El SDK de Mercado Pago no se cargó correctamente');
+        if (typeof window.Stripe === 'undefined') {
+          throw new Error('El SDK de Stripe no se cargó correctamente');
         }
         
-        console.log('✅ SDK de Mercado Pago cargado correctamente');
+        console.log('✅ SDK de Stripe cargado correctamente');
         setIsLoading(false);
       } catch (err) {
-        console.error('❌ Error cargando SDK de Mercado Pago:', err);
+        console.error('❌ Error cargando SDK de Stripe:', err);
         setError(err instanceof Error ? err.message : 'Error desconocido');
         setIsLoading(false);
       }
     };
     
     script.onerror = () => {
-      console.error('❌ Error cargando SDK de Mercado Pago');
-      setError('No se pudo cargar el SDK de Mercado Pago');
+      console.error('❌ Error cargando SDK de Stripe');
+      setError('No se pudo cargar el SDK de Stripe');
       setIsLoading(false);
     };
     
     document.body.appendChild(script);
     
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
   
   return { isLoading, error };
 }
 
-// Añadir la definición global para TypeScript
-declare global {
-  interface Window {
-    MercadoPago: any;
-  }
-}
