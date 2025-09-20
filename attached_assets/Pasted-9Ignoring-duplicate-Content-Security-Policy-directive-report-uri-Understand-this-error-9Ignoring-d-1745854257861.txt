@@ -1,0 +1,117 @@
+9Ignoring duplicate Content-Security-Policy directive 'report-uri'.Understand this error
+9Ignoring duplicate Content-Security-Policy directive 'report-to'.Understand this error
+inpage.js:2 Uncaught (in promise) TypeError: Unhandled Promise Rejection: Cannot read properties of null (reading 'type')
+    at inpage.js:2:24363119
+    at step (inpage.js:2:24361354)
+    at Object.next (inpage.js:2:24360582)
+    at binanceInjectedProvider_asyncGeneratorStep (inpage.js:2:24355416)
+    at _next (inpage.js:2:24355680)
+    at nrWrapper (VM22:2:18180)Understand this error
+api.tokenmint.global/:1 
+            
+            
+           Failed to load resource: net::ERR_NAME_NOT_RESOLVEDUnderstand this error
+ Removing unpermitted intrinsics
+lockdown-install.js:1 Removing unpermitted intrinsics
+inpage.js:2 Uncaught (in promise) TypeError: Cannot read properties of null (reading 'type')
+    at inpage.js:2:24363119
+    at step (inpage.js:2:24361354)
+    at Object.next (inpage.js:2:24360582)
+    at binanceInjectedProvider_asyncGeneratorStep (inpage.js:2:24355416)
+    at _next (inpage.js:2:24355680)Understand this error
+main.js:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoepUnderstand this error
+lockdown-install.js:1 Removing unpermitted intrinsics
+chrome-extension://e…eppgdph/inpage.js:2 Uncaught (in promise) TypeError: Cannot read properties of null (reading 'type')
+    at inpage.js:2:24363119
+    at step (inpage.js:2:24361354)
+    at Object.next (inpage.js:2:24360582)
+    at binanceInjectedProvider_asyncGeneratorStep (inpage.js:2:24355416)
+    at _next (inpage.js:2:24355680)Understand this error
+inpage.js:2 Uncaught (in promise) TypeError: Cannot read properties of null (reading 'type')
+    at inpage.js:2:24363119
+    at step (inpage.js:2:24361354)
+    at Object.next (inpage.js:2:24360582)
+    at binanceInjectedProvider_asyncGeneratorStep (inpage.js:2:24355416)
+    at _next (inpage.js:2:24355680)Understand this error
+api.tokenmint.global/:1 
+            
+            
+           Failed to load resource: net::ERR_NAME_NOT_RESOLVEDUnderstand this error
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.Understand this warning
+main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3642 
+            
+            
+           POST https://api.tokenmint.global/ net::ERR_NAME_NOT_RESOLVED
+xhrSendProcessor @ main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3642
+window.XMLHttpRequest.send @ main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3655
+nrWrapper @ VM22:2
+XMLHttpRequest.send @ js:1
+send @ horizen.js:2
+init @ horizen.js:2
+create @ horizen.js:2
+(anonymous) @ horizen.js:2
+nrWrapper @ VM22:2
+setTimeout
+nrWrapper @ VM22:2
+a @ horizen.js:2
+(anonymous) @ horizen.js:2
+connect @ horizen.js:2
+(anonymous) @ horizen.js:2
+nrWrapper @ VM22:2Understand this error
+main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3642 
+            
+            
+           POST https://api.tokenmint.global/ net::ERR_NAME_NOT_RESOLVED
+xhrSendProcessor @ main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3642
+window.XMLHttpRequest.send @ main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3655
+nrWrapper @ VM22:2
+XMLHttpRequest.send @ js:1
+send @ horizen.js:2
+init @ horizen.js:2
+create @ horizen.js:2
+(anonymous) @ horizen.js:2
+nrWrapper @ VM22:2
+setTimeout
+nrWrapper @ VM22:2
+a @ horizen.js:2
+(anonymous) @ horizen.js:2
+connect @ horizen.js:2
+(anonymous) @ horizen.js:2
+nrWrapper @ VM22:2
+setTimeout
+nrWrapper @ VM22:2
+refresh @ horizen.js:2
+connectionError @ horizen.js:2
+n @ horizen.js:2
+d @ horizen.js:2
+u.emit @ horizen.js:2
+onError @ horizen.js:2
+(anonymous) @ horizen.js:2
+o @ horizen.js:2
+r.onreadystatechange @ horizen.js:2
+nrWrapper @ VM22:2
+XMLHttpRequest.send
+xhrSendProcessor @ main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3642
+window.XMLHttpRequest.send @ main.js?attr=TnAh8MIYU4pYYOSRPLcPIhY6q57ZcCVuLgHKHwn9f0XknvWL-s2CVVNtsxpCm42lw2QcpNIO2pV2bRjjOKYr1xDtMNyfCAGszEYmYAfZlCN84xiUF9LW9vAsn_z6MzngrrKGqBv7ZWmwxjgowA1yHnnH_8--f4w5hpBnka8n3kLU2cQaxL8LE6wHpNeGG5MNshRuEGDkdC0jc4tJqHDlkT4u5wlOiYSSnnKuWT5fZ6m66CsTv5eU3LCsFGhOK0be8fHM_TB62GMrlkIgQAgVBw:3655
+nrWrapper @ VM22:2
+XMLHttpRequest.send @ js:1
+send @ horizen.js:2
+init @ horizen.js:2
+create @ horizen.js:2
+(anonymous) @ horizen.js:2
+nrWrapper @ VM22:2
+setTimeout
+nrWrapper @ VM22:2
+a @ horizen.js:2
+(anonymous) @ horizen.js:2
+connect @ horizen.js:2
+(anonymous) @ horizen.js:2
+nrWrapper @ VM22:2Understand this error
