@@ -10,7 +10,7 @@ import PaymentOptionsPage from "@/pages/PaymentOptionsPage";
 import PaymentQuotasPage from "@/pages/PaymentQuotasPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import PaymentBridge from "@/pages/PaymentBridge";
-import StripeCheckout from "@/pages/StripeCheckout";
+import KushkiCheckout from "@/pages/KushkiCheckout";
 import NotFound from "@/pages/not-found";
 import React from "react";
 
@@ -23,7 +23,7 @@ function Router() {
       <Route path="/payment-quotas" component={PaymentQuotasPage} />
       <Route path="/payment-bridge" component={PaymentBridge} />
       <Route path="/payment-success" component={PaymentSuccessPage} />
-      <Route path="/stripe-checkout" component={StripeCheckout} />
+      <Route path="/kushki-checkout" component={KushkiCheckout} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/admin-quotas" component={AdminQuotasPanel} />
       <Route component={NotFound} />

@@ -7,8 +7,9 @@ import { storage, PaymentRequest } from "./storage";
 import fetch from 'node-fetch';
 import cors from 'cors';
 
-// Importamos Stripe para el procesamiento de pagos
-import Stripe from 'stripe';
+// Kushki API configuration
+const KUSHKI_API_URL = 'https://api-uat.kushkipagos.com';
+const KUSHKI_PRIVATE_KEY = process.env.KUSHKI_PRIVATE_KEY || '';
 
 // Interfaces para clientes
 
@@ -94,100 +95,10 @@ function broadcastToAdmins(payload: any) {
   });
 }
 
-// Configurar webhook de Stripe ANTES de express.json() para preservar el cuerpo raw
-export function setupStripeWebhook(app: any) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-06-20'
-  });
-
-  // Webhook de Stripe para verificar eventos de pago
-  app.post('/webhooks/stripe', express.raw({type: 'application/json'}), async (req: any, res: any) => {
-    const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!webhookSecret) {
-      console.error('❌ STRIPE_WEBHOOK_SECRET no configurado');
-      return res.status(500).send('Webhook secret not configured');
-    }
-
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig!, webhookSecret);
-      console.log('✅ Webhook verificado:', event.type);
-    } catch (err: any) {
-      console.error('❌ Error verificando webhook:', err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    // Manejar eventos específicos de Stripe
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        const requestId = paymentIntent.metadata.requestId;
-        
-        if (requestId) {
-          console.log(`✅ Pago confirmado para solicitud ${requestId}`);
-          
-          // Actualizar el estado de la solicitud de pago
-          try {
-            const paymentRequest = await storage.getPaymentRequest(requestId);
-            if (paymentRequest) {
-              await storage.updatePaymentRequest(requestId, {
-                status: 'completed',
-                paymentIntentId: paymentIntent.id,
-                paidAmount: paymentIntent.amount?.toString(),
-                paidAt: new Date().toISOString()
-              });
-              
-              console.log(`💰 Solicitud ${requestId} marcada como pagada`);
-              
-              // Notificar a los clientes admin conectados via WebSocket
-              broadcastToAdmins({
-                type: 'payment_confirmed',
-                requestId: requestId,
-                amount: paymentIntent.amount,
-                paymentIntentId: paymentIntent.id
-              });
-            }
-          } catch (error) {
-            console.error('❌ Error actualizando estado de pago:', error);
-          }
-        }
-        break;
-
-      case 'payment_intent.payment_failed':
-        const failedPayment = event.data.object;
-        const failedRequestId = failedPayment.metadata.requestId;
-        
-        if (failedRequestId) {
-          console.log(`❌ Pago falló para solicitud ${failedRequestId}`);
-          
-          try {
-            await storage.updatePaymentRequest(failedRequestId, {
-              status: 'rejected',
-              paymentIntentId: failedPayment.id,
-              failureReason: failedPayment.last_payment_error?.message || 'Unknown error'
-            });
-            
-            // Notificar a los clientes admin conectados via WebSocket
-            broadcastToAdmins({
-              type: 'payment_failed',
-              requestId: failedRequestId,
-              reason: failedPayment.last_payment_error?.message || 'Unknown error'
-            });
-          } catch (error) {
-            console.error('❌ Error actualizando estado de pago fallido:', error);
-          }
-        }
-        break;
-
-      default:
-        console.log(`⚪ Evento no manejado: ${event.type}`);
-    }
-
-    res.status(200).send('Webhook received');
-  });
+// No webhook setup needed for Kushki - payment confirmation is synchronous
+export function setupStripeWebhook(_app: any) {
+  // Kept as no-op for backward compatibility with server/index.ts
+  console.log('ℹ️ Kushki no requiere webhook - confirmación de pago es síncrona');
 }
 
 // DEBUG: Create a test payment request
@@ -239,13 +150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Habilitamos CORS para todas las rutas
   app.use(cors());
   
-  // Inicializamos Stripe
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+  // Validar credenciales de Kushki
+  if (!KUSHKI_PRIVATE_KEY) {
+    console.warn('⚠️ KUSHKI_PRIVATE_KEY no configurada - pagos no funcionarán');
+  } else {
+    console.log('✅ Kushki configurado correctamente');
   }
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  
-  console.log('✅ Stripe configurado correctamente');
   
   
   // Helper function to safely parse CLP amounts
@@ -258,10 +168,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return isNaN(amount) ? 0 : amount;
   }
 
-  // Endpoint para generar enlaces de pago con Stripe  
+  // Endpoint para procesar pagos con Kushki
   app.post("/generar-enlace", async (req: Request, res: Response) => {
     try {
-      const { requestId, selectedQuotaIndices } = req.body;
+      const { requestId, selectedQuotaIndices, kushkiToken } = req.body;
       console.log('🔍 Solicitud de pago para requestId:', requestId, 'cuotas:', selectedQuotaIndices);
 
       if (!requestId) {
@@ -377,32 +287,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`💲 Total calculado server-side: $${totalAmount.toLocaleString('es-CL')} CLP`);
       
-      // Crear el Payment Intent con Stripe
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: totalAmount, // CLP is zero-decimal currency
-        currency: "clp",
-        automatic_payment_methods: {
-          enabled: true,
-        },
-        metadata: {
-          requestId: requestId,
-          items: itemDescriptions.join(', '),
-          quotas_count: selectedQuotaIndices.length.toString(),
-        },
-      }, {
-        idempotencyKey: idempotencyKey
-      });
+      // Si no se envió el token de Kushki, solo devolver el monto calculado
+      if (!kushkiToken) {
+        return res.json({
+          success: true,
+          amount: totalAmount,
+          items: itemDescriptions,
+          needsToken: true
+        });
+      }
+
+      // Procesar el cobro con Kushki usando el token
+      if (!KUSHKI_PRIVATE_KEY) {
+        return res.status(500).json({ error: 'Kushki no está configurado correctamente' });
+      }
+
+      console.log('🔄 Procesando cobro con Kushki...');
       
-      console.log("✅ Payment Intent creado correctamente");
-      console.log("🔗 Payment Intent ID:", paymentIntent.id);
-      
-      return res.json({
-        success: true,
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-        amount: totalAmount,
-        isFallback: false
+      const kushkiChargeResponse = await fetch(`${KUSHKI_API_URL}/card/v1/charges`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Private-Merchant-Id': KUSHKI_PRIVATE_KEY
+        },
+        body: JSON.stringify({
+          token: kushkiToken,
+          amount: {
+            subtotalIva: 0,
+            subtotalIva0: totalAmount,
+            ice: 0,
+            iva: 0,
+            currency: 'CLP'
+          },
+          metadata: {
+            requestId: requestId,
+            items: itemDescriptions.join(', '),
+            quotas_count: selectedQuotaIndices.length.toString()
+          }
+        })
       });
+
+      const kushkiResult = await kushkiChargeResponse.json() as any;
+      console.log('📦 Respuesta de Kushki:', JSON.stringify(kushkiResult));
+
+      if (kushkiResult.ticketNumber || kushkiResult.details?.transactionStatus === 'APPROVAL') {
+        console.log('✅ Pago procesado exitosamente con Kushki');
+        
+        // Actualizar el estado de la solicitud de pago
+        try {
+          await storage.updatePaymentRequest(requestId, {
+            status: 'completed',
+            paymentIntentId: kushkiResult.ticketNumber || kushkiResult.details?.transactionId || 'kushki-' + Date.now(),
+            paidAmount: totalAmount.toString(),
+            paidAt: new Date().toISOString()
+          });
+          
+          // Notificar a los administradores via WebSocket
+          broadcastToAdmins({
+            type: 'payment_confirmed',
+            requestId: requestId,
+            amount: totalAmount,
+            paymentIntentId: kushkiResult.ticketNumber || 'kushki-payment'
+          });
+        } catch (dbError) {
+          console.error('❌ Error actualizando estado de pago:', dbError);
+        }
+
+        return res.json({
+          success: true,
+          ticketNumber: kushkiResult.ticketNumber,
+          transactionId: kushkiResult.details?.transactionId,
+          amount: totalAmount,
+          approved: true
+        });
+      } else {
+        const errorMessage = kushkiResult.message || kushkiResult.details?.responseText || 'Error al procesar el pago';
+        console.error('❌ Error en cobro Kushki:', errorMessage);
+        
+        // Actualizar estado como rechazado
+        try {
+          await storage.updatePaymentRequest(requestId, {
+            status: 'rejected',
+            failureReason: errorMessage
+          });
+          
+          broadcastToAdmins({
+            type: 'payment_failed',
+            requestId: requestId,
+            reason: errorMessage
+          });
+        } catch (dbError) {
+          console.error('❌ Error actualizando estado de pago fallido:', dbError);
+        }
+
+        return res.status(400).json({
+          success: false,
+          error: errorMessage,
+          code: kushkiResult.code || 'UNKNOWN'
+        });
+      }
       
     } catch (error: any) {
       console.error('❌ Error al generar enlace:', error);
@@ -415,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Webhook de Stripe ahora se registra en setupStripeWebhook() antes de express.json()
+  // Kushki payment processing is handled directly in /generar-enlace endpoint
   
   
   // API routes

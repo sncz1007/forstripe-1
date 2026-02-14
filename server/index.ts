@@ -4,8 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
-// CRÍTICO: El webhook de Stripe DEBE registrarse ANTES de express.json() 
-// para preservar el cuerpo raw necesario para la verificación de firma
+// Setup payment webhook (no-op for Kushki, kept for compatibility)
 import { setupStripeWebhook } from "./routes";
 setupStripeWebhook(app);
 

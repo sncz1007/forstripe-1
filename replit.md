@@ -1,6 +1,6 @@
 # Overview
 
-This is a Chilean payment system application built with React/TypeScript frontend and Node.js/Express backend. The application enables users to submit payment requests for vehicle loan quotas by entering their Chilean RUT (tax ID), which are then processed by administrators through a real-time admin panel. The system includes Chilean RUT validation, WebSocket-based real-time communication, and integration with payment providers like Mercado Pago and Stripe for payment processing.
+This is a Chilean payment system application built with React/TypeScript frontend and Node.js/Express backend. The application enables users to submit payment requests for vehicle loan quotas by entering their Chilean RUT (tax ID), which are then processed by administrators through a real-time admin panel. The system includes Chilean RUT validation, WebSocket-based real-time communication, and integration with Kushki payment gateway for payment processing.
 
 # User Preferences
 
@@ -24,9 +24,10 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: RESTful endpoints with WebSocket fallback for real-time features
 
 ## Payment Processing Architecture
-- **Primary Provider**: Mercado Pago integration with direct API calls (avoiding SDK compatibility issues)
-- **Secondary Provider**: Stripe integration as backup payment processor
-- **Payment Flow**: Custom payment bridge system that handles multiple payment scenarios
+- **Primary Provider**: Kushki payment gateway (Billpocket COMER DEL NOROESTE) for Chilean peso (CLP) payments
+- **Payment Flow**: Frontend tokenizes card via Kushki.js CDN → sends token to backend → backend charges via Kushki API (synchronous confirmation)
+- **API Endpoints**: Uses Kushki UAT environment (api-uat.kushkipagos.com) for testing
+- **Security**: Server-side amount calculation prevents client tampering; Private Merchant ID stored as secret
 - **RUT Validation**: Chilean tax ID validation with checksum verification
 
 ## Real-time Communication Design
@@ -44,9 +45,8 @@ Preferred communication style: Simple, everyday language.
 # External Dependencies
 
 ## Payment Providers
-- **Mercado Pago**: Primary payment processor with Chilean peso (CLP) support
-- **Stripe**: Secondary payment processor for international transactions
-- **Payment Method**: Direct API integration avoiding SDK compatibility issues
+- **Kushki**: Primary payment processor via direct API integration (card tokenization + server-side charge)
+- **Kushki.js CDN**: Frontend card tokenization library loaded from cdn.kushkipagos.com
 
 ## Database Services
 - **Neon Database**: Serverless PostgreSQL provider via `@neondatabase/serverless`

@@ -525,239 +525,37 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
     setIsLoading(true);
     
     try {
-      // Recolectar información de las cuotas seleccionadas
       const selectedQuotasInfo = selectedQuotas.map(index => userData.quotas[index]);
       
-      // Crear el array de cuotas para enviar a Mercado Pago
-      const cuotasParaMercadoPago = selectedQuotasInfo.map(quota => {
-        // Extraer solo los números del string de monto (eliminar puntos, símbolos, etc.)
-        console.log(`💲 Procesando monto de cuota: ${quota.totalAmount}`);
-        const cleanedAmount = quota.totalAmount.replace(/[^0-9]/g, '');
-        console.log(`💲 Monto limpio (sin puntos/símbolos): ${cleanedAmount}`);
-        
-        // Convertimos a número entero para el backend
-        const totalAmount = parseInt(cleanedAmount, 10);
-        console.log(`💲 Monto total como entero: ${totalAmount}`);
-        
-        // El unit_price debe estar en la moneda base (pesos completos, no centavos)
-        // NO dividimos por 100 porque ya está en pesos chilenos
-        const unitPrice = totalAmount;
-        console.log(`💲 Precio unitario final para MP: ${unitPrice}`);
-        
-        const cuotaObj = {
-          title: `Cuota N°${quota.quotaNumber}`,
-          description: `Contrato ${quota.contractNumber}`,
-          quantity: 1,
-          unit_price: unitPrice,
-          currency_id: 'COP'  // Usando peso colombiano que es soportado por Mercado Pago
-        };
-        
-        console.log(`📦 Objeto de cuota procesado:`, cuotaObj);
-        return cuotaObj;
-      });
-      
-      console.log("Cuotas preparadas para Mercado Pago:", cuotasParaMercadoPago);
-      
       try {
-        // Construir URLs para redirección
-        const urlBase = window.location.origin;
-        
-        // Intentar primero con el nuevo método de proxy directo
-        console.log("🔄 Intentando crear preferencia a través del proxy de Mercado Pago");
-        
-        let data;
-        let useFallback = false;
-        
-        try {
-          // Obtener el requestId desde sessionStorage
-          const requestId = sessionStorage.getItem('paymentRequestId');
-          if (!requestId) {
-            throw new Error('No se encontró el ID de la solicitud de pago');
-          }
-          
-          // Crear el Payment Intent usando Stripe con el requestId y índices de cuotas seleccionadas
-          const paymentResult = await createPreference({
-            requestId: requestId,
-            selectedQuotaIndices: selectedQuotas
-          });
-          
-          console.log("✅ Resultado de createPreference:", paymentResult);
-          
-          if (paymentResult.success) {
-            console.log("✅ Payment Intent creado con éxito");
-            
-            // Guardar el client secret para el checkout de Stripe
-            sessionStorage.setItem('stripeClientSecret', paymentResult.clientSecret);
-            sessionStorage.setItem('paymentIntentId', paymentResult.paymentIntentId);
-            sessionStorage.setItem('totalAmount', paymentResult.amount?.toString() || '0');
-            
-            data = {
-              success: true,
-              clientSecret: paymentResult.clientSecret,
-              paymentIntentId: paymentResult.paymentIntentId,
-              isFallback: false
-            };
-            
-            console.log("Respuesta de Stripe:", data);
-          } else {
-            throw new Error(paymentResult.error || "Error al crear Payment Intent");
-          }
-        } catch (stripeError) {
-          console.error("❌ Error usando Stripe:", stripeError);
-          useFallback = true;
+        const requestId = sessionStorage.getItem('paymentRequestId');
+        if (!requestId) {
+          throw new Error('No se encontró el ID de la solicitud de pago');
         }
         
-        // Si falla el proxy, usar el endpoint original
-        if (useFallback) {
-          console.log("🔄 Usando endpoint original");
-          
-          const response = await fetch('/generar-enlace', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ cuotas: cuotasParaMercadoPago })
-          });
-          
-          data = await response.json();
-          console.log("Respuesta del endpoint original:", data);
-        }
+        const paymentResult = await createPreference({
+          requestId: requestId,
+          selectedQuotaIndices: selectedQuotas
+        });
         
-        if (data && (data.paymentLink || data.clientSecret)) {
-          console.log("Redirigiendo al enlace de pago:", data.paymentLink);
-          // Guardamos el ID de preferencia para referencia futura
-          if (data.preferenceId) {
-            sessionStorage.setItem('preferenceId', data.preferenceId);
-          }
-          
-          // Guardar información del cliente para mostrarla en la página de éxito
+        console.log("✅ Resultado del cálculo de monto:", paymentResult);
+        
+        if (paymentResult.success) {
+          sessionStorage.setItem('totalAmount', paymentResult.amount?.toString() || '0');
+          sessionStorage.setItem('selectedQuotaIndices', JSON.stringify(selectedQuotas));
           sessionStorage.setItem('clientName', userData.clientName);
           sessionStorage.setItem('clientRut', userData.clientRut);
-          
-          // Guardar cuotas seleccionadas para mostrarlas en la página de éxito
           sessionStorage.setItem('selectedQuotas', JSON.stringify(selectedQuotasInfo));
           
-          // Redirigir al enlace de pago con tiempo para asegurar que todo se guarde
-          setTimeout(() => {
-            try {
-              // Si tenemos un clientSecret de Stripe, ir al checkout de Stripe
-              if (data.clientSecret) {
-                console.log("🚀 Redirigiendo al checkout de Stripe");
-                setLocation('/stripe-checkout');
-                return;
-              }
-              
-              // Si es un enlace externo de Mercado Pago
-              if (!data.isFallback && data.paymentLink && data.paymentLink.startsWith('http')) {
-                console.log("🚀 Redirigiendo a Mercado Pago (URL externa):", data.paymentLink);
-                
-                // Para debugging
-                console.log("⚠️ IMPORTANTE: Comprobar que el enlace de Mercado Pago se abre correctamente");
-                console.log("⚠️ URL completa:", data.paymentLink);
-                console.log("⚠️ Dominio destino:", new URL(data.paymentLink).hostname);
-                
-                // Guardar estado antes de redirigir
-                sessionStorage.setItem('lastPaymentAttempt', JSON.stringify({
-                  timestamp: Date.now(),
-                  url: data.paymentLink,
-                  preferenceId: data.preferenceId
-                }));
-                
-                // Notificar al WebSocket que el usuario está yendo a la pasarela de pago y CAMBIAR a estado PAGADO
-                console.log("📡 Enviando actualización: Usuario va a pasarela de pago");
-                sendJsonMessage({
-                  type: 'update_user_status',
-                  currentPage: 'pasarela_pago',
-                  // Forzar estado completed para que aparezca como PAGADO
-                  paymentStatus: 'completed'
-                });
-                
-                // También actualizar el estado en la base de datos directamente
-                const paymentRequestId = sessionStorage.getItem('paymentRequestId');
-                if (paymentRequestId) {
-                  console.log(`🔄 Actualizando solicitud ${paymentRequestId} a PAGADO`);
-                  fetch(`/api/payment-request/${paymentRequestId}/update`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      status: 'completed',
-                      paymentLink: data.paymentLink
-                    }),
-                  }).then(response => {
-                    if (response.ok) {
-                      console.log(`✅ Estado de solicitud ${paymentRequestId} actualizado a PAGADO correctamente`);
-                    } else {
-                      console.error(`❌ Error al actualizar estado de solicitud ${paymentRequestId} a PAGADO`);
-                    }
-                  }).catch(error => {
-                    console.error(`❌ Error al actualizar estado: ${error.message}`);
-                  });
-                }
-                
-                // Esperar un momento para asegurar que el mensaje WebSocket se envíe
-                setTimeout(() => {
-                  // Redirigir directamente en la misma ventana
-                  console.log("🔄 Redirigiendo directamente en la misma ventana a:", data.paymentLink);
-                  window.location.href = data.paymentLink;
-                }, 100);
-              } 
-              // Si es fallback o una URL interna, usar wouter para navegar
-              else {
-                // Obtenemos la ruta relativa si es una URL completa interna
-                const path = data.paymentLink && data.paymentLink.includes(window.location.host) 
-                  ? new URL(data.paymentLink).pathname
-                  : data.paymentLink || '/payment-bridge';
-                  
-                // Notificar al WebSocket que el usuario está yendo a la pasarela de pago interna
-                console.log("📡 Enviando actualización: Usuario va a pasarela de pago (interna)");
-                sendJsonMessage({
-                  type: 'update_user_status',
-                  currentPage: 'pasarela_pago',
-                  // Forzar estado completed para que aparezca como PAGADO
-                  paymentStatus: 'completed'
-                });
-                
-                // También actualizar el estado en la base de datos directamente
-                const paymentRequestId = sessionStorage.getItem('paymentRequestId');
-                if (paymentRequestId) {
-                  console.log(`🔄 Actualizando solicitud ${paymentRequestId} a PAGADO (ruta interna)`);
-                  fetch(`/api/payment-request/${paymentRequestId}/update`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      status: 'completed',
-                      paymentLink: data.paymentLink
-                    }),
-                  }).then(response => {
-                    if (response.ok) {
-                      console.log(`✅ Estado de solicitud ${paymentRequestId} actualizado a PAGADO correctamente`);
-                    } else {
-                      console.error(`❌ Error al actualizar estado de solicitud ${paymentRequestId} a PAGADO`);
-                    }
-                  }).catch(error => {
-                    console.error(`❌ Error al actualizar estado: ${error.message}`);
-                  });
-                }
-                
-                // Esperar un momento para asegurar que el mensaje WebSocket se envíe
-                setTimeout(() => {
-                  console.log("🔄 Redirigiendo a ruta interna (fallback):", path);
-                  setLocation(path);
-                }, 100);
-              }
-            } catch (error) {
-              console.error("❌ Error al procesar URL para redirección:", error);
-              // En caso de error, mostrar el problema y redirigir a la página de puente
-              alert("Hubo un problema al conectar con el servicio de pagos. Continuando en modo alternativo.");
-              setLocation('/payment-bridge');
-            }
-          }, 200);
+          sendJsonMessage({
+            type: 'update_user_status',
+            currentPage: 'pasarela_pago',
+            paymentStatus: 'processing'
+          });
+          
+          setLocation('/kushki-checkout');
         } else {
-          throw new Error("No se recibió un enlace de pago válido");
+          throw new Error(paymentResult.error || "Error al calcular el monto");
         }
       } catch (error) {
         console.error("Error al procesar el pago:", error);
