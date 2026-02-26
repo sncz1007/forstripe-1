@@ -8,6 +8,21 @@ import fetch from 'node-fetch';
 import https from 'https';
 import cors from 'cors';
 
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err.message, err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM signal');
+  process.exit(0);
+});
+process.on('SIGINT', () => {
+  console.log('Received SIGINT signal');
+  process.exit(0);
+});
+
 // Billpocket API configuration
 const BILLPOCKET_IS_PRODUCTION = process.env.BILLPOCKET_ENV === 'production';
 const BILLPOCKET_API_URL = BILLPOCKET_IS_PRODUCTION 
@@ -772,19 +787,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws'
   });
   
+  const MAX_ADMIN_CLIENTS = 10;
+  const adminConnectionTimes = new Map<string, number>();
+
   wss.on('connection', (ws: WebSocket, req) => {
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     const clientType = url.searchParams.get('type') || 'user';
     const requestId = url.searchParams.get('requestId');
-    
-    console.log(`New WebSocket connection: ${clientType}`);
+
+    for (let i = adminClients.length - 1; i >= 0; i--) {
+      if (adminClients[i].ws.readyState !== WebSocket.OPEN) {
+        adminClients.splice(i, 1);
+      }
+    }
     
     if (clientType === 'admin') {
-      // Admin client
+      const ip = req.socket.remoteAddress || 'unknown';
+      const now = Date.now();
+      const lastConn = adminConnectionTimes.get(ip) || 0;
+      if (now - lastConn < 3000) {
+        ws.close(1008, 'Rate limited');
+        return;
+      }
+      adminConnectionTimes.set(ip, now);
+
+      if (adminClients.length >= MAX_ADMIN_CLIENTS) {
+        ws.close(1008, 'Too many admin connections');
+        return;
+      }
+
       const admin: AdminClient = { ws, isAdmin: true };
       adminClients.push(admin);
       
-      // Send list of all payment requests to new admin
+      console.log(`New admin connection (total: ${adminClients.length})`);
       console.log(`Enviando ${paymentRequestsCache.length} solicitudes al nuevo admin`);
       
       ws.send(JSON.stringify({ 
@@ -1133,22 +1168,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ws.on('close', () => {
         const index = userClients.findIndex(c => c.ws === ws);
         if (index !== -1) {
-          // Marcar como desconectado en lugar de eliminar
-          userClients[index].connected = false;
-          userClients[index].lastSeen = Date.now();
-          
-          // Notificar a todos los administradores sobre el cambio de estado
-          notifyAdminsAboutUserStatus(userClients[index]);
-          
-          // Mantener el usuario en la lista por un tiempo antes de eliminarlo
-          // para que aparezca como "recientemente desconectado" en el panel
+          const disconnectedClient = userClients[index];
+          const savedClientId = disconnectedClient.clientId;
+          const savedRut = disconnectedClient.rut || 'anónimo';
+
+          disconnectedClient.connected = false;
+          disconnectedClient.lastSeen = Date.now();
+
+          notifyAdminsAboutUserStatus(disconnectedClient);
+
           setTimeout(() => {
-            const currentIndex = userClients.findIndex(c => c.clientId === userClients[index].clientId);
+            const currentIndex = userClients.findIndex(c => c.clientId === savedClientId);
             if (currentIndex !== -1 && !userClients[currentIndex].connected) {
               userClients.splice(currentIndex, 1);
-              console.log(`Usuario ${userClients[index].rut || 'anónimo'} eliminado después de 5 minutos de inactividad`);
+              console.log(`Usuario ${savedRut} eliminado después de 5 minutos de inactividad`);
             }
-          }, 5 * 60 * 1000); // 5 minutos
+          }, 5 * 60 * 1000);
         }
         console.log('Usuario desconectado');
       });
