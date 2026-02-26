@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 import cors from 'cors';
 
 // Kushki API configuration
-const KUSHKI_API_URL = 'https://api-uat.kushkipagos.com';
+const KUSHKI_API_URL = 'https://api.kushkipagos.com';
 const KUSHKI_PRIVATE_KEY = process.env.KUSHKI_PRIVATE_KEY || '';
 
 // Interfaces para clientes
