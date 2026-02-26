@@ -48,7 +48,7 @@ export default function KushkiCheckout() {
       try {
         kushkiRef.current = new window.Kushki({
           merchantId: publicKey,
-          inTestEnvironment: false,
+          inTestEnvironment: true,
           regional: true
         });
         setSdkLoaded(true);
