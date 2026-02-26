@@ -53,4 +53,4 @@ integrations = ["javascript_stripe:1.0.0"]
 [userenv]
 
 [userenv.shared]
-VITE_KUSHKI_PUBLIC_KEY = "udQDvYg1NBzrkasEEqShIwAAHs8JGEFuBgOrwKC7TDDPwRevAAY9aA"
+VITE_KUSHKI_PUBLIC_KEY = "8QG8-2CTfLvoXauVc91blwAAC0rIKXeLHQC5aHXZLSkReoL4AAaP_Q"
