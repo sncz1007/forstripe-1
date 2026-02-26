@@ -10,7 +10,7 @@ import cors from 'cors';
 // Billpocket API configuration
 const BILLPOCKET_API_URL = 'https://paywith.billpocket.com/api/v1';
 const BILLPOCKET_CHECKOUT_URL = 'https://paywith.billpocket.com/checkout';
-const BILLPOCKET_API_KEY = process.env.KUSHKI_PRIVATE_KEY || '';
+const BILLPOCKET_API_KEY = process.env.BILLPOCKET_API_KEY || process.env.KUSHKI_PRIVATE_KEY || '';
 
 // Interfaces para clientes
 
