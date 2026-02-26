@@ -553,7 +553,11 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
             paymentStatus: 'processing'
           });
           
-          setLocation('/kushki-checkout');
+          if (paymentResult.checkoutUrl) {
+            window.location.href = paymentResult.checkoutUrl;
+          } else {
+            setLocation('/kushki-checkout');
+          }
         } else {
           throw new Error(paymentResult.error || "Error al calcular el monto");
         }

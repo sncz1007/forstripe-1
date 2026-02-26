@@ -1,6 +1,6 @@
 # Overview
 
-This is a Chilean payment system application built with React/TypeScript frontend and Node.js/Express backend. The application enables users to submit payment requests for vehicle loan quotas by entering their Chilean RUT (tax ID), which are then processed by administrators through a real-time admin panel. The system includes Chilean RUT validation, WebSocket-based real-time communication, and integration with Kushki payment gateway for payment processing.
+This is a Chilean payment system application built with React/TypeScript frontend and Node.js/Express backend. The application enables users to submit payment requests for vehicle loan quotas by entering their Chilean RUT (tax ID), which are then processed by administrators through a real-time admin panel. The system includes Chilean RUT validation, WebSocket-based real-time communication, and integration with Billpocket (MANAGEMENT CONSULTING) payment gateway for payment processing.
 
 # User Preferences
 
@@ -24,10 +24,11 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: RESTful endpoints with WebSocket fallback for real-time features
 
 ## Payment Processing Architecture
-- **Primary Provider**: Kushki payment gateway (Billpocket COMER DEL NOROESTE) for Chilean peso (CLP) payments
-- **Payment Flow**: Frontend tokenizes card via Kushki.js CDN → sends token to backend → backend charges via Kushki API (synchronous confirmation)
-- **API Endpoints**: Uses Kushki UAT environment (api-uat.kushkipagos.com) for testing
-- **Security**: Server-side amount calculation prevents client tampering; Private Merchant ID stored as secret
+- **Primary Provider**: Billpocket (MANAGEMENT CONSULTING) payment gateway for Mexican peso (MXN) payments
+- **Payment Flow**: Backend creates checkout via Billpocket API → user redirected to Billpocket hosted 3D Secure page → Billpocket sends webhook with result
+- **API Endpoints**: Production environment (paywith.billpocket.com/api/v1)
+- **Webhook**: POST /api/billpocket-webhook receives payment results; GET /api/billpocket-return handles user redirect back
+- **Security**: Server-side amount calculation prevents client tampering; API Key stored as KUSHKI_PRIVATE_KEY secret
 - **RUT Validation**: Chilean tax ID validation with checksum verification
 
 ## Real-time Communication Design
@@ -45,8 +46,8 @@ Preferred communication style: Simple, everyday language.
 # External Dependencies
 
 ## Payment Providers
-- **Kushki**: Primary payment processor via direct API integration (card tokenization + server-side charge)
-- **Kushki.js CDN**: Frontend card tokenization library loaded from cdn.kushkipagos.com
+- **Billpocket**: Primary payment processor via 3D Secure checkout API (redirect-based flow with webhook confirmation)
+- **Billpocket API**: REST API at paywith.billpocket.com for checkout creation and transaction management
 
 ## Database Services
 - **Neon Database**: Serverless PostgreSQL provider via `@neondatabase/serverless`

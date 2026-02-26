@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export async function createPreference(paymentData: any) {
-  console.log('💲 Calculando monto con el servidor para Kushki');
+  console.log('💲 Creando checkout de pago con Billpocket');
   
   try {
     const { requestId, selectedQuotaIndices } = paymentData;
@@ -32,18 +32,18 @@ export async function createPreference(paymentData: any) {
       return {
         success: true,
         amount: data.amount,
-        items: data.items,
-        needsToken: data.needsToken,
+        checkoutUrl: data.checkoutUrl,
+        checkoutId: data.checkoutId,
         data: data
       };
     } else {
       return {
         success: false,
-        error: data.error || 'Error al calcular el monto'
+        error: data.error || 'Error al crear el checkout'
       };
     }
   } catch (error) {
-    console.error('❌ Error calculando monto:', error);
+    console.error('❌ Error creando checkout:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'

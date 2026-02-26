@@ -7,9 +7,10 @@ import { storage, PaymentRequest } from "./storage";
 import fetch from 'node-fetch';
 import cors from 'cors';
 
-// Kushki API configuration
-const KUSHKI_API_URL = 'https://api-uat-regional.kushkipagos.com';
-const KUSHKI_PRIVATE_KEY = process.env.KUSHKI_PRIVATE_KEY || '';
+// Billpocket API configuration
+const BILLPOCKET_API_URL = 'https://paywith.billpocket.com/api/v1';
+const BILLPOCKET_CHECKOUT_URL = 'https://paywith.billpocket.com/checkout';
+const BILLPOCKET_API_KEY = process.env.KUSHKI_PRIVATE_KEY || '';
 
 // Interfaces para clientes
 
@@ -95,10 +96,18 @@ function broadcastToAdmins(payload: any) {
   });
 }
 
-// No webhook setup needed for Kushki - payment confirmation is synchronous
+// Broadcast message to user clients with a specific requestId
+function broadcastToUser(requestId: string, payload: any) {
+  userClients.forEach(client => {
+    if (client.requestId === requestId && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify(payload));
+    }
+  });
+}
+
+// Webhook setup for backward compatibility with server/index.ts
 export function setupStripeWebhook(_app: any) {
-  // Kept as no-op for backward compatibility with server/index.ts
-  console.log('ℹ️ Kushki no requiere webhook - confirmación de pago es síncrona');
+  console.log('ℹ️ Billpocket webhook configurado en /api/billpocket-webhook');
 }
 
 // DEBUG: Create a test payment request
@@ -150,11 +159,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Habilitamos CORS para todas las rutas
   app.use(cors());
   
-  // Validar credenciales de Kushki
-  if (!KUSHKI_PRIVATE_KEY) {
-    console.warn('⚠️ KUSHKI_PRIVATE_KEY no configurada - pagos no funcionarán');
+  // Validar credenciales de Billpocket
+  if (!BILLPOCKET_API_KEY) {
+    console.warn('⚠️ BILLPOCKET_API_KEY no configurada - pagos no funcionarán');
   } else {
-    console.log('✅ Kushki configurado correctamente');
+    console.log('✅ Billpocket configurado correctamente');
   }
   
   
@@ -168,10 +177,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return isNaN(amount) ? 0 : amount;
   }
 
-  // Endpoint para procesar pagos con Kushki
+  // Endpoint para crear checkout de Billpocket
   app.post("/generar-enlace", async (req: Request, res: Response) => {
     try {
-      const { requestId, selectedQuotaIndices, kushkiToken } = req.body;
+      const { requestId, selectedQuotaIndices } = req.body;
       console.log('🔍 Solicitud de pago para requestId:', requestId, 'cuotas:', selectedQuotaIndices);
 
       if (!requestId) {
@@ -287,103 +296,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`💲 Total calculado server-side: $${totalAmount.toLocaleString('es-CL')} CLP`);
       
-      // Si no se envió el token de Kushki, solo devolver el monto calculado
-      if (!kushkiToken) {
-        return res.json({
-          success: true,
-          amount: totalAmount,
-          items: itemDescriptions,
-          needsToken: true
-        });
+      // Crear checkout en Billpocket
+      if (!BILLPOCKET_API_KEY) {
+        return res.status(500).json({ error: 'Billpocket no está configurado correctamente' });
       }
 
-      // Procesar el cobro con Kushki usando el token
-      if (!KUSHKI_PRIVATE_KEY) {
-        return res.status(500).json({ error: 'Kushki no está configurado correctamente' });
-      }
-
-      console.log('🔄 Procesando cobro con Kushki...');
+      console.log('🔄 Creando checkout en Billpocket...');
       
-      const kushkiChargeResponse = await fetch(`${KUSHKI_API_URL}/card/v1/charges`, {
+      const billpocketResponse = await fetch(`${BILLPOCKET_API_URL}/checkout`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Private-Merchant-Id': KUSHKI_PRIVATE_KEY
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          token: kushkiToken,
-          amount: {
-            subtotalIva: 0,
-            subtotalIva0: totalAmount,
-            ice: 0,
-            iva: 0,
-            currency: 'CLP'
-          },
-          metadata: {
-            requestId: requestId,
-            items: itemDescriptions.join(', '),
-            quotas_count: selectedQuotaIndices.length.toString()
-          }
+          apiKey: BILLPOCKET_API_KEY,
+          externalId: idempotencyKey,
+          items: itemDescriptions,
+          total: totalAmount
         })
       });
 
-      const kushkiResult = await kushkiChargeResponse.json() as any;
-      console.log('📦 Respuesta de Kushki:', JSON.stringify(kushkiResult));
+      const billpocketResult = await billpocketResponse.json() as any;
+      console.log('📦 Respuesta de Billpocket:', JSON.stringify(billpocketResult));
 
-      if (kushkiResult.ticketNumber || kushkiResult.details?.transactionStatus === 'APPROVAL') {
-        console.log('✅ Pago procesado exitosamente con Kushki');
+      if (billpocketResult.checkoutId) {
+        console.log('✅ Checkout creado exitosamente en Billpocket');
         
-        // Actualizar el estado de la solicitud de pago
+        const checkoutUrl = `${BILLPOCKET_CHECKOUT_URL}/${billpocketResult.checkoutId}`;
+        
+        // Guardar el checkoutId en la solicitud para rastrear el pago
         try {
           await storage.updatePaymentRequest(requestId, {
-            status: 'completed',
-            paymentIntentId: kushkiResult.ticketNumber || kushkiResult.details?.transactionId || 'kushki-' + Date.now(),
-            paidAmount: totalAmount.toString(),
-            paidAt: new Date().toISOString()
-          });
-          
-          // Notificar a los administradores via WebSocket
-          broadcastToAdmins({
-            type: 'payment_confirmed',
-            requestId: requestId,
-            amount: totalAmount,
-            paymentIntentId: kushkiResult.ticketNumber || 'kushki-payment'
+            paymentIntentId: billpocketResult.checkoutId,
+            paidAmount: totalAmount.toString()
           });
         } catch (dbError) {
-          console.error('❌ Error actualizando estado de pago:', dbError);
+          console.error('❌ Error guardando checkoutId:', dbError);
         }
 
         return res.json({
           success: true,
-          ticketNumber: kushkiResult.ticketNumber,
-          transactionId: kushkiResult.details?.transactionId,
-          amount: totalAmount,
-          approved: true
+          checkoutUrl: checkoutUrl,
+          checkoutId: billpocketResult.checkoutId,
+          amount: totalAmount
         });
       } else {
-        const errorMessage = kushkiResult.message || kushkiResult.details?.responseText || 'Error al procesar el pago';
-        console.error('❌ Error en cobro Kushki:', errorMessage);
+        const errorMessage = billpocketResult.message || billpocketResult.error || 'Error al crear el checkout en Billpocket';
+        console.error('❌ Error en Billpocket:', errorMessage, JSON.stringify(billpocketResult));
         
-        // Actualizar estado como rechazado
-        try {
-          await storage.updatePaymentRequest(requestId, {
-            status: 'rejected',
-            failureReason: errorMessage
-          });
-          
-          broadcastToAdmins({
-            type: 'payment_failed',
-            requestId: requestId,
-            reason: errorMessage
-          });
-        } catch (dbError) {
-          console.error('❌ Error actualizando estado de pago fallido:', dbError);
-        }
-
         return res.status(400).json({
           success: false,
-          error: errorMessage,
-          code: kushkiResult.code || 'UNKNOWN'
+          error: errorMessage
         });
       }
       
@@ -398,8 +361,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Kushki payment processing is handled directly in /generar-enlace endpoint
-  
+  // Billpocket webhook endpoint - receives payment results
+  app.post("/api/billpocket-webhook", async (req: Request, res: Response) => {
+    try {
+      const webhookData = req.body;
+      console.log('📩 Webhook de Billpocket recibido:', JSON.stringify(webhookData));
+      
+      const { checkout, externalId, total, authorization, opId, maskedPAN, message, token, cardBrand, cardIssuer, cardClass, signature } = webhookData;
+      
+      // Basic validation - require essential fields
+      if (!externalId || !checkout) {
+        console.error('❌ Webhook inválido - faltan campos requeridos');
+        return res.status(400).json({ error: 'campos requeridos faltantes' });
+      }
+      
+      // externalId format is: requestId-quotaIndices
+      const requestId = externalId.split('-')[0];
+      
+      // Find payment request by checkoutId or requestId
+      let paymentRequest = await storage.getPaymentRequest(requestId);
+      
+      if (!paymentRequest) {
+        // Try to find by iterating all requests
+        const allRequests = await storage.getAllPaymentRequests();
+        paymentRequest = allRequests.find(r => r.paymentIntentId === checkout) || undefined;
+      }
+      
+      if (!paymentRequest) {
+        console.error('❌ Solicitud de pago no encontrada para:', externalId);
+        return res.status(404).json({ error: 'Solicitud no encontrada' });
+      }
+
+      // Verify the checkout matches what we stored
+      if (paymentRequest.paymentIntentId && paymentRequest.paymentIntentId !== checkout) {
+        console.error('❌ CheckoutId no coincide:', checkout, 'vs', paymentRequest.paymentIntentId);
+        return res.status(400).json({ error: 'Checkout no válido' });
+      }
+      
+      const isApproved = message === 'APROBADA' || message === 'Approved';
+      
+      if (isApproved) {
+        console.log('✅ Pago aprobado por Billpocket - Authorization:', authorization);
+        
+        await storage.updatePaymentRequest(paymentRequest.id, {
+          status: 'completed',
+          paymentIntentId: checkout || opId || 'bp-' + Date.now(),
+          paidAmount: total?.toString() || '0',
+          paidAt: new Date().toISOString()
+        });
+        
+        broadcastToAdmins({
+          type: 'payment_confirmed',
+          requestId: paymentRequest.id,
+          amount: parseFloat(total) || 0,
+          paymentIntentId: authorization || checkout
+        });
+        
+        // Notify connected user
+        broadcastToUser(paymentRequest.id, {
+          type: 'payment_result',
+          success: true,
+          authorization: authorization,
+          message: 'Pago aprobado exitosamente'
+        });
+      } else {
+        console.error('❌ Pago rechazado por Billpocket:', message);
+        
+        await storage.updatePaymentRequest(paymentRequest.id, {
+          status: 'rejected',
+          failureReason: message || 'Pago rechazado'
+        });
+        
+        broadcastToAdmins({
+          type: 'payment_failed',
+          requestId: paymentRequest.id,
+          reason: message || 'Pago rechazado'
+        });
+        
+        broadcastToUser(paymentRequest.id, {
+          type: 'payment_result',
+          success: false,
+          message: message || 'Pago rechazado'
+        });
+      }
+      
+      return res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('❌ Error procesando webhook de Billpocket:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Billpocket redirect endpoint - user returns here after payment
+  app.get("/api/billpocket-return", async (req: Request, res: Response) => {
+    // Billpocket redirects the user here after payment
+    // The webhook will have already updated the status
+    console.log('🔄 Usuario retornó de Billpocket:', JSON.stringify(req.query));
+    res.redirect('/payment-success');
+  });
   
   // API routes
   app.get("/api/health", (_req, res) => {
