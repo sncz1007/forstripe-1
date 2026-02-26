@@ -8,8 +8,8 @@ import fetch from 'node-fetch';
 import cors from 'cors';
 
 // Billpocket API configuration
-const BILLPOCKET_API_URL = 'https://test.paywith.billpocket.com/api/v1';
-const BILLPOCKET_CHECKOUT_URL = 'https://test.paywith.billpocket.com/checkout';
+const BILLPOCKET_API_URL = 'https://paywith.billpocket.com/api/v1';
+const BILLPOCKET_CHECKOUT_URL = 'https://paywith.billpocket.com/checkout';
 const BILLPOCKET_API_KEY = process.env.KUSHKI_PRIVATE_KEY || '';
 
 // Interfaces para clientes
@@ -302,18 +302,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('🔄 Creando checkout en Billpocket...');
+      console.log('🔑 API Key (primeros 8 chars):', BILLPOCKET_API_KEY.substring(0, 8) + '...');
+      
+      const checkoutPayload = {
+        apiKey: BILLPOCKET_API_KEY,
+        externalId: idempotencyKey,
+        items: itemDescriptions,
+        total: totalAmount
+      };
+      console.log('📤 Payload enviado:', JSON.stringify({ ...checkoutPayload, apiKey: checkoutPayload.apiKey.substring(0, 8) + '...' }));
       
       const billpocketResponse = await fetch(`${BILLPOCKET_API_URL}/checkout`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${BILLPOCKET_API_KEY}`
         },
-        body: JSON.stringify({
-          apiKey: BILLPOCKET_API_KEY,
-          externalId: idempotencyKey,
-          items: itemDescriptions,
-          total: totalAmount
-        })
+        body: JSON.stringify(checkoutPayload)
       });
 
       const billpocketResult = await billpocketResponse.json() as any;
