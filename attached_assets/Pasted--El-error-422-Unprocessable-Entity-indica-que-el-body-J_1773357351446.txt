@@ -1,0 +1,149 @@
+
+El error 422 Unprocessable Entity indica que el body JSON que envías a Efipay no cumple con las validaciones requeridas (falta algún campo obligatorio, formato incorrecto, valor inválido, etc.). Según la documentación oficial de Efipay (efipay.co/docs/1.0), el flujo correcto para generar un link de pago redirect es:
+
+POST /api/v1/payment/generate-payment (o /api/v1/payment/generate-transaction) → crea la transacción y devuelve un id + posiblemente la URL si es directo.
+POST /api/v1/payment/transaction-checkout → procesa el checkout y devuelve la URL de redirección (payment_url o similar).
+El endpoint principal para crear el pago es /api/v1/payment/generate-payment, y requiere campos como:
+
+payment.amount (número entero)
+payment.currency ("CLP")
+payment.description
+payment.checkout_type: "redirect" (obligatorio para obtener link)
+payer.email (al menos)
+redirect_urls.success y redirect_urls.failure (obligatorios para redirect)
+Código completo para Replit (Node.js / Express recomendado)
+Asumiendo que tu backend es Node.js (común en Replit con frontend React), reemplaza tu archivo server.js o index.js con esto (o solo modifica la ruta /generar-enlace):
+
+const express = require('express');
+const fetch = require('node-fetch'); // si no lo tienes, instala: npm install node-fetch@2
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// Ruta para generar enlace de pago con Efipay
+app.post('/generar-enlace', async (req, res) => {
+  try {
+    const token = process.env.EFIPAY_API_TOKEN;
+    if (!token) {
+      return res.status(500).json({ error: 'Efipay no está configurado correctamente (falta EFIPAY_API_TOKEN en Secrets)' });
+    }
+
+    const { monto, descripcion = 'Prueba pago Replit Efipay', email, nombre = 'Cliente Prueba' } = req.body;
+
+    if (!monto || isNaN(monto) || monto < 1000) {
+      return res.status(400).json({ error: 'Monto requerido, numérico y mínimo 1000 CLP' });
+    }
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Email válido requerido' });
+    }
+
+    const baseUrl = 'https://sag.efipay.co'; // o prueba 'https://api.efipay.co' si da 404
+
+    const payload = {
+      payment: {
+        amount: Number(monto),          // entero: 15000 = $15.000 CLP
+        currency: 'CLP',
+        description: descripcion,
+        checkout_type: 'redirect'       // OBLIGATORIO para link
+      },
+      payer: {
+        email: email,
+        name: nombre
+        // Agrega si pide: phone: "+569...", document_type: "RUT", document_number: "12345678-9"
+      },
+      redirect_urls: {                  // OBLIGATORIO para redirect
+        success: 'https://tu-sitio.com/exito-o-placeholder',
+        failure: 'https://tu-sitio.com/error-o-placeholder'
+        // pending si lo soporta
+      }
+      // Opcional: reference: 'tu-referencia-123'
+    };
+
+    console.log('Enviando a Efipay:', JSON.stringify(payload, null, 2)); // debug
+
+    const response = await fetch(`${baseUrl}/api/v1/payment/generate-payment`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    console.log('Respuesta Efipay:', response.status, JSON.stringify(data, null, 2)); // ← mira esto en consola Replit!
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: 'Error en Efipay al generar pago',
+        status: response.status,
+        details: data  // aquí verás exactamente qué campo falta (ej. "redirect_urls is required")
+      });
+    }
+
+    // Extrae la URL (puede venir directo o necesitar segundo paso)
+    let paymentUrl = data.payment_url || data.checkout_url || data.redirect_url || data.url;
+
+    // Si no trae URL directo → haz el checkout (segundo paso)
+    if (!paymentUrl && data.id) {
+      const checkoutPayload = { payment: { id: data.id } };
+      const checkoutRes = await fetch(`${baseUrl}/api/v1/payment/transaction-checkout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(checkoutPayload)
+      });
+
+      const checkoutData = await checkoutRes.json();
+      console.log('Checkout response:', checkoutRes.status, JSON.stringify(checkoutData, null, 2));
+
+      if (!checkoutRes.ok) {
+        return res.status(checkoutRes.status).json({ error: 'Error en checkout', details: checkoutData });
+      }
+
+      paymentUrl = checkoutData.payment_url || checkoutData.url || checkoutData.redirect_url;
+    }
+
+    if (!paymentUrl) {
+      return res.status(500).json({ error: 'No se generó URL de pago válida' });
+    }
+
+    res.json({ success: true, url: paymentUrl });
+
+  } catch (err) {
+    console.error('Error general:', err.message);
+    res.status(500).json({ error: 'Error interno al procesar pago' });
+  }
+});
+
+// Para mantener el servidor vivo en Replit
+app.get('/', (req, res) => res.send('Backend Efipay activo'));
+
+app.listen(port, () => {
+  console.log(`Servidor corriendo en puerto ${port}`);
+});
+Instrucciones para implementar en Replit
+Instala dependencias (en Shell):
+npm init -y
+npm install express node-fetch@2
+Secrets (llave en barra lateral):
+Key: EFIPAY_API_TOKEN
+Value: 746|BxUXfyKmVCtyhSbJpvEB2n5vmfz91zhaihLgZYgx9c6054e7
+Corre → Stop & Run.
+Prueba desde frontend → envía POST a /generar-enlace con body JSON:
+{
+  "monto": 15000,
+  "email": "prueba@ejemplo.com",
+  "nombre": "Juan Test",
+  "descripcion": "Pago test CLP"
+}
+Debug:
+Abre consola del Repl → busca "Respuesta Efipay:" → copia el JSON completo (especialmente si hay error).
+Si 422 → el details dirá qué falta (ej. "redirect_urls": ["is required"]).
+Si 404 → cambia generate-payment por generate-transaction o prueba baseUrl https://api.efipay.co.
+Pega aquí el log de la consola del Repl (la respuesta de Efipay) cuando falle y te ayudo a ajustar el payload exacto. ¡Ya casi lo tienes funcionando! 🚀

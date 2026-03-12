@@ -320,100 +320,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payerEmail = paymentRequest.email || 'pagador@ejemplo.com';
       const payerName = paymentRequest.rut || 'Cliente';
 
-      // Construir payload para Efipay
-      // Endpoints alternativos: /api/v1/payment/generate-payment | /api/v1/payment/generate-transaction | /api/v1/transactions
+      const efipayHeaders = {
+        'Authorization': `Bearer ${EFIPAY_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+
+      // Payload con estructura correcta según docs de Efipay:
+      // los campos de pago van DENTRO de un objeto "payment", no en el nivel raíz
       const efipayPayload = {
-        amount: totalAmount,
-        currency: 'CLP',
-        description: itemDescriptions.join(', ') || 'Pago cuota préstamo vehicular',
-        checkout_type: 'redirect',
-        external_id: idempotencyKey,
+        payment: {
+          amount: totalAmount,          // entero CLP, ej: 15000
+          currency: 'CLP',
+          description: itemDescriptions.join(', ') || 'Pago cuota préstamo vehicular',
+          checkout_type: 'redirect'     // obligatorio para obtener link
+        },
         payer: {
           email: payerEmail,
           name: payerName
         },
-        redirect_urls: {
+        redirect_urls: {                // obligatorio para checkout redirect
           success: `${req.protocol}://${req.get('host')}/api/efipay-return?status=success`,
           failure: `${req.protocol}://${req.get('host')}/api/efipay-return?status=failure`
-        }
+        },
+        reference: idempotencyKey       // referencia interna para idempotencia
       };
 
       console.log('🔄 Creando pago en Efipay...');
-      console.log('🌐 URL:', `${EFIPAY_BASE_URL}/api/v1/payment/generate-payment`);
+      console.log('🌐 Endpoint:', `${EFIPAY_BASE_URL}/api/v1/payment/generate-payment`);
       console.log('🔑 Token (primeros 10 chars):', EFIPAY_TOKEN.substring(0, 10) + '...');
-      console.log('📤 Payload enviado:', JSON.stringify(efipayPayload));
+      console.log('📤 Payload enviado:', JSON.stringify(efipayPayload, null, 2));
 
-      const efipayResponse = await fetch(`${EFIPAY_BASE_URL}/api/v1/payment/generate-payment`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${EFIPAY_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(efipayPayload)
-      });
+      // Helper para llamar Efipay con reintentos de endpoint
+      async function callEfipayGeneratePayment(endpoint: string): Promise<{ status: number; data: any }> {
+        const r = await fetch(`${EFIPAY_BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: efipayHeaders,
+          body: JSON.stringify(efipayPayload)
+        });
+        const data = await r.json() as any;
+        console.log(`📦 Efipay ${endpoint} → status ${r.status}:`, JSON.stringify(data, null, 2));
+        return { status: r.status, data };
+      }
 
-      const efipayResult = await efipayResponse.json() as any;
-      console.log('📦 Respuesta de Efipay (status', efipayResponse.status, '):', JSON.stringify(efipayResult));
+      // Paso 1: intentar generate-payment, si da 404 intentar generate-transaction
+      let step1 = await callEfipayGeneratePayment('/api/v1/payment/generate-payment');
+      if (step1.status === 404) {
+        console.log('⚠️ /generate-payment dio 404, intentando /generate-transaction...');
+        step1 = await callEfipayGeneratePayment('/api/v1/payment/generate-transaction');
+      }
 
-      if (!efipayResponse.ok) {
-        // Si da 404, intentar endpoint alternativo: /api/v1/payment/generate-transaction
-        if (efipayResponse.status === 404) {
-          console.log('⚠️ Endpoint principal dio 404, intentando /api/v1/payment/generate-transaction...');
-          const altResponse = await fetch(`${EFIPAY_BASE_URL}/api/v1/payment/generate-transaction`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${EFIPAY_TOKEN}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(efipayPayload)
-          });
-          const altResult = await altResponse.json() as any;
-          console.log('📦 Respuesta alternativa Efipay (status', altResponse.status, '):', JSON.stringify(altResult));
-
-          if (!altResponse.ok) {
-            return res.status(altResponse.status).json({
-              success: false,
-              error: altResult.message || altResult.error || 'Error al crear pago en Efipay',
-              efipay_response: altResult
-            });
-          }
-
-          // Éxito con endpoint alternativo
-          const checkoutUrl = altResult.payment_url || altResult.checkout_url || altResult.redirect_url || altResult.url;
-          const paymentId = altResult.payment_id || altResult.transaction_id || altResult.id || idempotencyKey;
-
-          if (!checkoutUrl) {
-            console.error('❌ Efipay no devolvió URL de pago:', JSON.stringify(altResult));
-            return res.status(500).json({ success: false, error: 'Efipay no devolvió una URL de pago válida', efipay_response: altResult });
-          }
-
-          try {
-            await storage.updatePaymentRequest(requestId, {
-              paymentIntentId: paymentId,
-              paidAmount: totalAmount.toString()
-            });
-          } catch (dbError) {
-            console.error('❌ Error guardando paymentId:', dbError);
-          }
-
-          console.log('✅ Pago creado exitosamente en Efipay (endpoint alternativo):', checkoutUrl);
-          return res.json({ success: true, checkoutUrl, checkoutId: paymentId, amount: totalAmount });
-        }
-
-        return res.status(efipayResponse.status).json({
+      if (step1.status !== 200 && step1.status !== 201) {
+        return res.status(step1.status).json({
           success: false,
-          error: efipayResult.message || efipayResult.error || 'Error al crear pago en Efipay',
-          efipay_response: efipayResult
+          error: step1.data?.message || step1.data?.error || 'Error al crear pago en Efipay',
+          efipay_response: step1.data
         });
       }
 
-      // Extraer URL de pago del response exitoso
-      const checkoutUrl = efipayResult.payment_url || efipayResult.checkout_url || efipayResult.redirect_url || efipayResult.url;
-      const paymentId = efipayResult.payment_id || efipayResult.transaction_id || efipayResult.id || idempotencyKey;
+      const step1Data = step1.data;
+      const paymentId = step1Data.payment_id || step1Data.transaction_id || step1Data.id || idempotencyKey;
+
+      // Extraer URL directamente del paso 1 si viene en la respuesta
+      let checkoutUrl: string | null =
+        step1Data.payment_url || step1Data.checkout_url || step1Data.redirect_url || step1Data.url || null;
+
+      // Paso 2: si no hay URL pero hay id → hacer transaction-checkout
+      if (!checkoutUrl && step1Data.id) {
+        console.log('🔄 Sin URL en paso 1, llamando /transaction-checkout con id:', step1Data.id);
+        const checkoutPayload = { payment: { id: step1Data.id } };
+        const checkoutRes = await fetch(`${EFIPAY_BASE_URL}/api/v1/payment/transaction-checkout`, {
+          method: 'POST',
+          headers: efipayHeaders,
+          body: JSON.stringify(checkoutPayload)
+        });
+        const checkoutData = await checkoutRes.json() as any;
+        console.log('📦 transaction-checkout → status', checkoutRes.status, ':', JSON.stringify(checkoutData, null, 2));
+
+        if (!checkoutRes.ok) {
+          return res.status(checkoutRes.status).json({
+            success: false,
+            error: checkoutData?.message || checkoutData?.error || 'Error en checkout step',
+            efipay_response: checkoutData
+          });
+        }
+        checkoutUrl = checkoutData.payment_url || checkoutData.checkout_url || checkoutData.redirect_url || checkoutData.url || null;
+      }
 
       if (!checkoutUrl) {
-        console.error('❌ Efipay no devolvió URL de pago:', JSON.stringify(efipayResult));
-        return res.status(500).json({ success: false, error: 'Efipay no devolvió una URL de pago válida', efipay_response: efipayResult });
+        console.error('❌ Efipay no devolvió URL de pago en ningún paso. Respuesta:', JSON.stringify(step1Data));
+        return res.status(500).json({
+          success: false,
+          error: 'Efipay no devolvió una URL de pago válida',
+          efipay_response: step1Data
+        });
       }
 
       try {
