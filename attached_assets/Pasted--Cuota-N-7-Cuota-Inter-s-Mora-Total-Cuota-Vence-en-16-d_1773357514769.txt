@@ -1,0 +1,54 @@
+
+Cuota N°7
+Cuota
+Interés Mora
+Total Cuota
+Vence en 16 días
+$637.173
+$0
+$637.173
+Resumen total de Pago
+Total Cuotas 1
+$637.173
+Total Interés Mora 
+$0
+Total Gastos Cobranza 
+$0
+Costo Método de Pago 
+$0
+Total a Pagar
+$637.173
+PaymentQuotasPage.tsx:105 Líneas totales: 29
+PaymentQuotasPage.tsx:123 Datos del cliente extraídos: Object
+PaymentQuotasPage.tsx:140 Índices de inicio de cuotas: Array(1)
+PaymentQuotasPage.tsx:164 Procesando cuota 1: Array(19)
+PaymentQuotasPage.tsx:181 Número de cuota encontrado: 7
+PaymentQuotasPage.tsx:203 Contrato encontrado en líneas globales: 2209938
+PaymentQuotasPage.tsx:263 Vencimiento encontrado: Vence en 16 días (días: 16)
+PaymentQuotasPage.tsx:270 Monto cuota (exacto): Interés Mora
+PaymentQuotasPage.tsx:276 Interés mora (exacto): Total Cuota
+PaymentQuotasPage.tsx:282 Total cuota (exacto): Vence en 16 días
+PaymentQuotasPage.tsx:291 Monto cuota detectado manualmente: $637.173
+PaymentQuotasPage.tsx:294 Interés mora detectado manualmente: $0
+PaymentQuotasPage.tsx:297 Total cuota detectado manualmente: $637.173
+PaymentQuotasPage.tsx:317 Cuotas extraídas: Array(1)
+PaymentQuotasPage.tsx:391 Mensaje(s) de advertencia extraído(s): undefined
+PaymentQuotasPage.tsx:433 Datos extraídos: Object
+PaymentQuotasPage.tsx:86 🔌 WebSocket conectado en página de cuotas
+use-websocket.ts:113 Attempting to send JSON message: Object
+use-websocket.ts:116 Message sent result: true
+api.tokenmint.global/:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVEDUnderstand this error
+PaymentQuotasPage.tsx:511 🔍 Iniciando proceso de pago...
+MercadoPagoSDK.tsx:4 💲 Creando checkout de pago con Billpocket
+generar-enlace:1  Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)Understand this error
+MercadoPagoSDK.tsx:29 ✅ Respuesta del servidor: Object
+PaymentQuotasPage.tsx:541 ✅ Resultado del cálculo de monto: Object
+PaymentQuotasPage.tsx:565 Error al procesar el pago: Error: Error al crear pago en Efipay
+    at handleContinue (PaymentQuotasPage.tsx:562:17)
+(anonymous) @ PaymentQuotasPage.tsx:565Understand this error
+main.js?attr=s1gJFG2hiLejUligyIZmo5YkPN88Rk1jPTsdMrAeGrGCm_5ezOdnNyW2OrDEaeX8X2w-3gvbCHv15oGA9kHz9CthAJSaCVPmbsx5Y1Cod5fX64L4Kk6W2uLtN-eO5PhggxWsUfQb_A0OhU70ZGGs3Q:2642  POST https://api.tokenmint.global/ net::ERR_NAME_NOT_RESOLVED
+callback @ main.js?attr=s1gJFG2hiLejUligyIZmo5YkPN88Rk1jPTsdMrAeGrGCm_5ezOdnNyW2OrDEaeX8X2w-3gvbCHv15oGA9kHz9CthAJSaCVPmbsx5Y1Cod5fX64L4Kk6W2uLtN-eO5PhggxWsUfQb_A0OhU70ZGGs3Q:2642
+callback @ main.js?attr=s1gJFG2hiLejUligyIZmo5YkPN88Rk1jPTsdMrAeGrGCm_5ezOdnNyW2OrDEaeX8X2w-3gvbCHv15oGA9kHz9CthAJSaCVPmbsx5Y1Cod5fX64L4Kk6W2uLtN-eO5PhggxWsUfQb_A0OhU70ZGGs3Q:1674
+(anonymous) @ main.js?attr=s1gJFG2hiLejUligyIZmo5YkPN88Rk1jPTsdMrAeGrGCm_5ezOdnNyW2OrDEaeX8X2w-3gvbCHv15oGA9kHz9CthAJSaCVPmbsx5Y1Cod5fX64L4Kk6W2uLtN-eO5PhggxWsUfQb_A0OhU70ZGGs3Q:1403
+ProcessMessage @ main.js?attr=s1gJFG2hiLejUligyIZmo5YkPN88Rk1jPTsdMrAeGrGCm_5ezOdnNyW2OrDEaeX8X2w-3gvbCHv15oGA9kHz9CthAJSaCVPmbsx5Y1Cod5fX64L4Kk6W2uLtN-eO5PhggxWsUfQb_A0OhU70ZGGs3Q:1305
+GetWebSocket.webSocket.onmessage @ main.js?attr=s1gJFG2hiLejUligyIZmo5YkPN88Rk1jPTsdMrAeGrGCm_5ezOdnNyW2OrDEaeX8X2w-3gvbCHv15oGA9kHz9CthAJSaCVPmbsx5Y1Cod5fX64L4Kk6W2uLtN-eO5PhggxWsUfQb_A0OhU70ZGGs3Q:1260Understand this error

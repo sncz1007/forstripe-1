@@ -22,10 +22,14 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Efipay API configuration (modo pruebas, pesos chilenos CLP)
-// Posible base URL: https://sag.efipay.co o https://api.efipay.co
+// Efipay API configuration
+// Base URL: https://sag.efipay.co (alternativa: https://api.efipay.co)
 const EFIPAY_BASE_URL = 'https://sag.efipay.co';
 const EFIPAY_TOKEN = process.env.EFIPAY_TEST_KEY || process.env.EFIPAY_API_TOKEN || '';
+// REQUERIDO por Efipay: agrega EFIPAY_OFFICE_ID en Secrets (solicitar a soporte@efipay.co)
+const EFIPAY_OFFICE_ID = process.env.EFIPAY_OFFICE_ID ? Number(process.env.EFIPAY_OFFICE_ID) : null;
+// REQUERIDO por Efipay: moneda habilitada en la cuenta ("COP" o "USD" por defecto; CLP necesita activación)
+const EFIPAY_CURRENCY = process.env.EFIPAY_CURRENCY || 'CLP';
 
 // Interfaces para clientes
 
@@ -326,25 +330,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Accept': 'application/json'
       };
 
-      // Payload con estructura correcta según docs de Efipay:
-      // los campos de pago van DENTRO de un objeto "payment", no en el nivel raíz
-      const efipayPayload = {
+      // Advertir si falta office ID
+      if (!EFIPAY_OFFICE_ID) {
+        console.warn('⚠️ EFIPAY_OFFICE_ID no configurado. Solicitar ID de sucursal a soporte@efipay.co y agregar como Secret.');
+      }
+
+      const efipayPayload: Record<string, any> = {
         payment: {
-          amount: totalAmount,          // entero CLP, ej: 15000
-          currency: 'CLP',
+          amount: totalAmount,
+          currency_type: EFIPAY_CURRENCY,   // variable configurable; CLP requiere activación por Efipay
           description: itemDescriptions.join(', ') || 'Pago cuota préstamo vehicular',
-          checkout_type: 'redirect'     // obligatorio para obtener link
+          checkout_type: 'redirect'
         },
         payer: {
           email: payerEmail,
           name: payerName
         },
-        redirect_urls: {                // obligatorio para checkout redirect
+        redirect_urls: {
           success: `${req.protocol}://${req.get('host')}/api/efipay-return?status=success`,
           failure: `${req.protocol}://${req.get('host')}/api/efipay-return?status=failure`
         },
-        reference: idempotencyKey       // referencia interna para idempotencia
+        reference: idempotencyKey
       };
+
+      // Incluir office solo si está configurado
+      if (EFIPAY_OFFICE_ID) {
+        efipayPayload.office = EFIPAY_OFFICE_ID;
+      }
 
       console.log('🔄 Creando pago en Efipay...');
       console.log('🌐 Endpoint:', `${EFIPAY_BASE_URL}/api/v1/payment/generate-payment`);
