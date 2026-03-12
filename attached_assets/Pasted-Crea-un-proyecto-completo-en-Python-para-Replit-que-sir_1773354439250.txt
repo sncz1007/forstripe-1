@@ -1,0 +1,29 @@
+Crea un proyecto completo en Python para Replit que sirva como tester básico de la API de Efipay[](https://efipay.co) versión 1.0.
+
+Requisitos obligatorios:
+- Usar el token de prueba que me dieron: 746|BxUXfyKmVCtyhSbJpvEB2n5vmfz91zhaihLgZYgx9c6054e7
+- El header de autorización debe ser: Authorization: Bearer 746|BxUXfyKmVCtyhSbJpvEB2n5vmfz91zhaihLgZYgx9c6054e7
+- Usar la librería requests para hacer las peticiones HTTP
+- Incluir colorama o rich para que la salida en consola se vea bonita y coloreada
+- El programa debe tener un menú interactivo (con input) con al menos estas opciones:
+
+1. Obtener información del comercio / mi cuenta (probar un GET a un endpoint de perfil o merchant info)
+2. Listar planes de suscripción existentes (GET a /plans o similar)
+3. Crear un plan de suscripción de prueba (POST con datos básicos: nombre "Plan Test Replit", precio 10000 en pesos, intervalo mensual, etc.)
+4. Crear un link de pago / checkout de una sola transacción (POST a endpoint de transacciones o checkout, monto 5000, descripción "Prueba desde Replit")
+5. Consultar una transacción específica (si pide ID, pedirlo al usuario)
+6. Salir
+
+Instrucciones importantes:
+- La base URL de la API es https://api.efipay.co (o si es diferente, usa https://efipay.co/api o investiga en el código qué responde un 404/401 para deducir)
+- Todos los requests deben incluir el header Authorization Bearer con el token exacto.
+- Manejar errores comunes: 401 (token inválido), 400 (datos malos), 404 (endpoint no existe), mostrar el status code y el json de error.
+- Imprimir bonito el JSON de respuesta usando json.dumps(..., indent=2)
+- Si algún endpoint requiere body, usa ejemplos mínimos válidos según la documentación que mencionas (usuarios, grupos, suscriptores, planes, transacciones).
+- Incluir comentarios en español explicando cada sección.
+- Al inicio mostrar un mensaje: "Tester de API Efipay - Modo Pruebas - Token sandbox activado"
+- Usar try/except para que no se caiga el programa si hay error en requests.
+
+Genera el código completo en un solo archivo main.py listo para correr en Replit (incluye pip install si es necesario en el shell: pip install requests rich)
+
+Si no conoces los endpoints exactos, incluye comentarios tipo # Posible endpoint: /v1/plans o /api/subscriptions/plans y deja que el usuario los ajuste después de probar.
