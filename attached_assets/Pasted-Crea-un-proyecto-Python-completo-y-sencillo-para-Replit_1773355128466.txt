@@ -1,0 +1,35 @@
+Crea un proyecto Python completo y sencillo para Replit que integre la API de Efipay (efipay.co) en modo pruebas, usando pesos chilenos (CLP) como moneda.
+
+Requisitos obligatorios:
+- Usar librerías: requests, os, json, rich (para consola bonita)
+- Leer el token Bearer desde secrets de Replit: os.getenv("EFIPAY_TEST_KEY")
+- Si no existe el secret, mostrar error claro y salir
+- Base URL de la API: https://sag.efipay.co (o https://api.efipay.co si responde mejor — prueba primero /api/v1 o similar)
+- Header siempre: {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+- Moneda fija: "CLP" (pesos chilenos)
+- Incluir un menú interactivo simple (while True + input) con estas opciones:
+
+1. Probar conexión básica (GET a un endpoint de perfil o /api/v1/merchant o similar – el que devuelva 200 con info del comercio)
+2. Crear un link de pago / checkout simple de una sola transacción (POST a /api/v1/payment/transaction-checkout o /api/v1/payment/generate-payment)
+   - Monto: pedir al usuario (ej: 15000)
+   - Descripción: "Prueba Replit - Pago en CLP"
+   - Moneda: CLP (fijo)
+   - Otros campos mínimos: email del pagador (pedirlo), nombre (pedirlo), redirect_url: "https://tu-sitio.com/exito" (o un placeholder)
+   - Imprimir la URL de pago generada para que el usuario la abra en el navegador
+3. Consultar estado de una transacción (si pide ID o reference, pedirlo al usuario – GET a endpoint correspondiente)
+4. Salir
+
+Incluir:
+- Manejo de errores: mostrar status_code + response.json() si falla
+- Imprimir JSON bonito con rich o json.dumps(indent=2)
+- Colores en consola con rich (verde éxito, rojo error, amarillo info)
+- Al inicio: mensaje "Tester Efipay - Modo pruebas - Pesos Chilenos (CLP) - Token desde Replit Secrets"
+- Usar try/except en requests para no crashear
+- Si no sabes el endpoint exacto, poner comentarios # Posible endpoint según docs: /api/v1/payment/transaction-checkout
+  y dejar que el usuario lo ajuste tras ver el error 404/405
+
+Genera el código completo en un solo archivo main.py listo para Replit.
+Incluye al final instrucciones en comentarios:
+# En Replit: ve a Secrets → agrega key=EFIPAY_TEST_KEY value=tu_token
+# Instala dependencias: pip install requests rich
+# Corre: python main.py

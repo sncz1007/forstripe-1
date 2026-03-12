@@ -53,4 +53,4 @@ integrations = ["javascript_stripe:1.0.0"]
 [userenv]
 
 [userenv.shared]
-VITE_KUSHKI_PUBLIC_KEY = "55e60a8e8e64f6a49ce3013b75bf5b062fbd1bf0ff40238d8ff271557716f5d8"
+EFIPAY_API_TOKEN = "746|BxUXfyKmVCtyhSbJpvEB2n5vmfz91zhaihLgZYgx9c6054e7"
