@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export async function createPreference(paymentData: any) {
-  console.log('💲 Creando checkout de pago con Billpocket');
+  console.log('💲 Creando enlace de pago con Efipay...');
   
   try {
     const { requestId, selectedQuotaIndices } = paymentData;
