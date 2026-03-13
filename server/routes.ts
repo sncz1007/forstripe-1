@@ -30,6 +30,8 @@ const EFIPAY_TOKEN = process.env.EFIPAY_TEST_KEY || process.env.EFIPAY_API_TOKEN
 const EFIPAY_OFFICE_ID = process.env.EFIPAY_OFFICE_ID ? Number(process.env.EFIPAY_OFFICE_ID) : null;
 // REQUERIDO por Efipay: moneda habilitada en la cuenta ("COP" por defecto para pruebas; CLP necesita activación)
 const EFIPAY_CURRENCY = process.env.EFIPAY_CURRENCY || 'COP';
+// Token para verificar webhooks entrantes de Efipay
+const EFIPAY_WEBHOOK_TOKEN = process.env.EFIPAY_WEBHOOK_TOKEN || '';
 
 // Interfaces para clientes
 
@@ -454,6 +456,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Efipay webhook endpoint - recibe resultados de pago
   app.post("/api/efipay-webhook", async (req: Request, res: Response) => {
     try {
+      // Verificar token de webhook (Efipay lo puede enviar en header o query param)
+      const incomingToken =
+        req.headers['x-webhook-token'] as string ||
+        req.headers['x-efipay-token'] as string ||
+        req.query.token as string ||
+        req.body?.token;
+
+      if (EFIPAY_WEBHOOK_TOKEN && incomingToken !== EFIPAY_WEBHOOK_TOKEN) {
+        console.warn('⚠️ Webhook con token inválido rechazado. Recibido:', incomingToken);
+        return res.status(401).json({ error: 'Token de webhook inválido' });
+      }
+
       const webhookData = req.body;
       console.log('📩 Webhook de Efipay recibido:', JSON.stringify(webhookData));
 
