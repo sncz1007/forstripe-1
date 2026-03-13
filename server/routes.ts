@@ -326,7 +326,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: 'Clip no está configurado (falta CLIP_API_KEY en Secrets)' });
       }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      // Usar REPLIT_DOMAINS si está disponible para obtener la URL pública correcta
+      const host = req.get('host') || '';
+      const protocol = host.includes('replit.dev') || host.includes('repl.co') ? 'https' : req.protocol;
+      const baseUrl = `${protocol}://${host}`;
       const description = (itemDescriptions.join(', ') || 'Pago cuota préstamo vehicular').substring(0, 250);
 
       const clipPayload = {
@@ -334,11 +337,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency: CLIP_CURRENCY,
         purchase_description: description,
         redirection_url: {
-          success: `${baseUrl}/api/clip-return?status=success&ref=${idempotencyKey}`,
-          error:   `${baseUrl}/api/clip-return?status=error&ref=${idempotencyKey}`,
-          default: `${baseUrl}/api/clip-return?status=default&ref=${idempotencyKey}`
+          success: baseUrl + '/api/clip-return?status=success&ref=' + idempotencyKey,
+          error:   baseUrl + '/api/clip-return?status=error&ref=' + idempotencyKey,
+          default: baseUrl + '/api/clip-return?status=default&ref=' + idempotencyKey
         },
-        webhook_url: `${baseUrl}/api/clip-webhook`,
+        webhook_url: baseUrl + '/api/clip-webhook',
         metadata: {
           request_id: requestId,
           reference: idempotencyKey,
@@ -351,15 +354,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔑 API Key (primeros 10 chars):', CLIP_API_KEY.substring(0, 10) + '...');
       console.log('📤 Payload enviado:', JSON.stringify(clipPayload, null, 2));
 
-      // Construir headers: si hay Basic Token (api_key + secret_key) usarlo; si no, solo x-api-key
+      // El endpoint /checkout de Clip solo requiere x-api-key según su OpenAPI spec
       const clipHeaders: Record<string, string> = {
+        'x-api-key': CLIP_API_KEY,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.com.payclip.v2+json'
       };
-      if (CLIP_BASIC_TOKEN) {
-        clipHeaders['Authorization'] = `Basic ${CLIP_BASIC_TOKEN}`;
-      }
-      clipHeaders['x-api-key'] = CLIP_API_KEY;
 
       const clipRes = await fetch(`${CLIP_BASE_URL}/checkout`, {
         method: 'POST',

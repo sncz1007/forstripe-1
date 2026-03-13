@@ -1,0 +1,44 @@
+Vencimiento encontrado: Vence en 16 días (días: 16)
+PaymentQuotasPage.tsx:270 Monto cuota (exacto): Interés Mora
+PaymentQuotasPage.tsx:276 Interés mora (exacto): Total Cuota
+PaymentQuotasPage.tsx:282 Total cuota (exacto): Vence en 16 días
+PaymentQuotasPage.tsx:291 Monto cuota detectado manualmente: $637.173
+PaymentQuotasPage.tsx:294 Interés mora detectado manualmente: $0
+PaymentQuotasPage.tsx:297 Total cuota detectado manualmente: $637.173
+PaymentQuotasPage.tsx:317 Cuotas extraídas: Array(1)
+PaymentQuotasPage.tsx:391 Mensaje(s) de advertencia extraído(s): undefined
+PaymentQuotasPage.tsx:433 Datos extraídos: Object
+api.tokenmint.global/:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVEDUnderstand this error
+PaymentQuotasPage.tsx:86 🔌 WebSocket conectado en página de cuotas
+use-websocket.ts:113 Attempting to send JSON message: Object
+use-websocket.ts:116 Message sent result: true
+PaymentQuotasPage.tsx:511 🔍 Iniciando proceso de pago...
+MercadoPagoSDK.tsx:4 💲 Creando enlace de pago con Clip...
+api.tokenmint.global/:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVEDUnderstand this error
+LoadingPage.tsx:176 WebSocket connection opened, sending request registration for request ID: gjrji0t236lk5hjkf2yqm
+generar-enlace:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+MercadoPagoSDK.tsx:29 ✅ Respuesta del servidor: Object
+PaymentQuotasPage.tsx:541 ✅ Resultado del cálculo de monto: Object
+PaymentQuotasPage.tsx:565 Error al procesar el pago: Error: Unauthorized
+    at handleContinue (PaymentQuotasPage.tsx:562:17)
+(anonymous) @ PaymentQuotasPage.tsx:565Understand this error
+use-websocket.ts:113 Attempting to send JSON message: {type: 'register_request', requestId: 'gjrji0t236lk5hjkf2yqm'}
+use-websocket.ts:116 Message sent result: true
+LoadingPage.tsx:183 Registration message sent for request ID: gjrji0t236lk5hjkf2yqm
+main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:2642  POST https://api.tokenmint.global/ net::ERR_NAME_NOT_RESOLVED
+callback @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:2642
+callback @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1674
+(anonymous) @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1403
+ProcessMessage @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1305
+GetWebSocket.webSocket.onmessage @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1260Understand this error
+LoadingPage.tsx:188 Client received message: {"type":"request_status","request":{"id":"gjrji0t236lk5hjkf2yqm","rut":"17.546.765-3","status":"processing","timestamp":"1772043671389","response":"CRISTIAN SERVANDO VALENZUELA BUSTOS\n17.546.765-3\nCuotas a pagar\nMétodo de pago\nComprobante de pago\n\nSuscripción automática a PAC o PAT\n\nPuedes suscribir el pago de tus cuotas de manera automática (PAC o PAT). Este servicio es totalmente gratuito\n\nCuotas a pagar\nContrato\n2209938\n\nCuota N°7\nCuota\nInterés Mora\nTotal Cuota\nVence en 16 días\n$637.173\n$0\n$637.173\nResumen total de Pago\nTotal Cuotas 1\n$637.173\nTotal Interés Mora \n$0\nTotal Gastos Cobranza \n$0\nCosto Método de Pago \n$0\nTotal a Pagar\n$637.173","quotas":null}}
+LoadingPage.tsx:190 Parsed client message: {type: 'request_status', request: {…}}
+LoadingPage.tsx:193 Processing request update for client, request data: {id: 'gjrji0t236lk5hjkf2yqm', rut: '17.546.765-3', status: 'processing', timestamp: '1772043671389', response: 'CRISTIAN SERVANDO VALENZUELA BUSTOS\n17.546.765-3\nC…0\nCosto Método de Pago \n$0\nTotal a Pagar\n$637.173', …}
+LoadingPage.tsx:34 Actualizando datos de solicitud: {id: 'gjrji0t236lk5hjkf2yqm', rut: '17.546.765-3', status: 'processing', timestamp: '1772043671389', response: 'CRISTIAN SERVANDO VALENZUELA BUSTOS\n17.546.765-3\nC…0\nCosto Método de Pago \n$0\nTotal a Pagar\n$637.173', …}
+LoadingPage.tsx:76 Solicitud en procesamiento - redireccionando a página de cuotas
+main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:2642  POST https://api.tokenmint.global/ net::ERR_NAME_NOT_RESOLVED
+callback @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:2642
+callback @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1674
+(anonymous) @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1403
+ProcessMessage @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1305
+GetWebSocket.webSocket.onmessage @ main.js?attr=jNG2uZXoLGrws7QazwgFsdJr9FRxX4vVzIC9P_kQpM504sZmOHNXUdDS8RhCXJkWAjQZXQd6axKIzQ1_vhPZdxb5nOW-4lfMZXTwtYssjPTw8RES3RlkQu6grc32_ChVoFGuxOKSPXMGJFHApOoB4A:1260Understand this error
