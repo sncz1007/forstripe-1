@@ -6,6 +6,7 @@ import type { WebSocket as WebSocketType } from "ws";
 import { storage, PaymentRequest } from "./storage";
 import fetch from 'node-fetch';
 import cors from 'cors';
+import Stripe from 'stripe';
 
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION:', err.message, err.stack);
@@ -22,17 +23,10 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Clip API configuration
-// Docs: https://developer.clip.mx/docs/api-de-checkout
-const CLIP_BASE_URL = 'https://api-gw.payclip.com';
-const CLIP_API_KEY = process.env.CLIP_API_KEY || '';
-const CLIP_SECRET_KEY = process.env.CLIP_SECRET_KEY || '';
-// Token Basic Auth = base64(api_key:secret_key) — usado por Clip para autenticación
-const CLIP_BASIC_TOKEN = (CLIP_API_KEY && CLIP_SECRET_KEY)
-  ? Buffer.from(`${CLIP_API_KEY}:${CLIP_SECRET_KEY}`).toString('base64')
-  : '';
-// Moneda MXN (Clip es pasarela mexicana); configurar con CLIP_CURRENCY si se necesita otra
-const CLIP_CURRENCY = process.env.CLIP_CURRENCY || 'MXN';
+// Stripe API configuration — CLP (peso chileno, moneda sin decimales)
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' }) : null;
 
 // Interfaces para clientes
 
@@ -129,7 +123,7 @@ function broadcastToUser(requestId: string, payload: any) {
 
 // Webhook setup for backward compatibility with server/index.ts
 export function setupStripeWebhook(_app: any) {
-  console.log('ℹ️ Clip webhook configurado en /api/clip-webhook');
+  console.log('ℹ️ Stripe webhook configurado en /api/stripe-webhook');
 }
 
 // DEBUG: Create a test payment request
@@ -181,14 +175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Habilitamos CORS para todas las rutas
   app.use(cors());
   
-  // Validar credenciales de Clip
-  if (!CLIP_API_KEY) {
-    console.warn('⚠️ CLIP_API_KEY no configurada - pagos no funcionarán hasta agregar el Secret');
-  } else if (!CLIP_SECRET_KEY) {
-    console.warn('⚠️ CLIP_SECRET_KEY no configurada - usando solo x-api-key');
-    console.log('✅ Clip configurado (solo API Key)');
+  // Validar credenciales de Stripe
+  if (!STRIPE_SECRET_KEY) {
+    console.warn('⚠️ STRIPE_SECRET_KEY no configurada - pagos no funcionarán hasta agregar el Secret');
   } else {
-    console.log('✅ Clip configurado correctamente (API Key + Secret Key → Basic Auth)');
+    console.log('✅ Stripe configurado correctamente (CLP)');
   }
   
   
@@ -321,73 +312,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`💲 Total calculado server-side: $${totalAmount.toLocaleString('es-CL')} CLP`);
 
-      // Crear pago en Clip
-      if (!CLIP_API_KEY) {
-        return res.status(500).json({ error: 'Clip no está configurado (falta CLIP_API_KEY en Secrets)' });
+      // Crear sesión de pago en Stripe
+      if (!stripe) {
+        return res.status(500).json({ error: 'Stripe no está configurado (falta STRIPE_SECRET_KEY en Secrets)' });
       }
 
       // Usar REPLIT_DOMAINS si está disponible para obtener la URL pública correcta
       const host = req.get('host') || '';
       const protocol = host.includes('replit.dev') || host.includes('repl.co') ? 'https' : req.protocol;
       const baseUrl = `${protocol}://${host}`;
-      const description = (itemDescriptions.join(', ') || 'Pago cuota préstamo vehicular').substring(0, 250);
+      const description = (itemDescriptions.join(', ') || 'Pago cuota préstamo vehicular').substring(0, 500);
 
-      const clipPayload = {
-        amount: totalAmount,
-        currency: CLIP_CURRENCY,
-        purchase_description: description,
-        redirection_url: {
-          success: baseUrl + '/api/clip-return?status=success&ref=' + idempotencyKey,
-          error:   baseUrl + '/api/clip-return?status=error&ref=' + idempotencyKey,
-          default: baseUrl + '/api/clip-return?status=default&ref=' + idempotencyKey
-        },
-        webhook_url: baseUrl + '/api/clip-webhook',
+      console.log('🔄 Creando sesión de pago en Stripe...');
+      console.log('💲 Monto CLP:', totalAmount);
+
+      // CLP es moneda sin decimales en Stripe — el amount ya está en pesos enteros
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'payment',
+        currency: 'clp',
+        line_items: [{
+          price_data: {
+            currency: 'clp',
+            unit_amount: totalAmount,
+            product_data: {
+              name: 'Cuota Préstamo Vehicular',
+              description: description
+            }
+          },
+          quantity: 1
+        }],
+        success_url: baseUrl + '/api/stripe-return?status=success&session_id={CHECKOUT_SESSION_ID}&ref=' + idempotencyKey,
+        cancel_url:  baseUrl + '/api/stripe-return?status=cancel&ref=' + idempotencyKey,
         metadata: {
           request_id: requestId,
           reference: idempotencyKey,
           rut: paymentRequest.rut || ''
         }
-      };
-
-      console.log('🔄 Creando pago en Clip...');
-      console.log('🌐 Endpoint:', `${CLIP_BASE_URL}/checkout`);
-      console.log('🔑 API Key (primeros 10 chars):', CLIP_API_KEY.substring(0, 10) + '...');
-      console.log('📤 Payload enviado:', JSON.stringify(clipPayload, null, 2));
-
-      // El endpoint /checkout de Clip solo requiere x-api-key según su OpenAPI spec
-      const clipHeaders: Record<string, string> = {
-        'x-api-key': CLIP_API_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/vnd.com.payclip.v2+json'
-      };
-
-      const clipRes = await fetch(`${CLIP_BASE_URL}/checkout`, {
-        method: 'POST',
-        headers: clipHeaders,
-        body: JSON.stringify(clipPayload)
       });
 
-      const clipData = await clipRes.json() as any;
-      console.log(`📦 Clip /checkout → status ${clipRes.status}:`, JSON.stringify(clipData, null, 2));
-
-      if (!clipRes.ok) {
-        return res.status(clipRes.status).json({
-          success: false,
-          error: clipData?.message || clipData?.detail || 'Error al crear pago en Clip',
-          clip_response: clipData
-        });
-      }
-
-      const checkoutUrl: string = clipData.payment_request_url;
-      const paymentId: string = clipData.payment_request_id || idempotencyKey;
+      const checkoutUrl = session.url;
+      const paymentId = session.id;
 
       if (!checkoutUrl) {
-        console.error('❌ Clip no devolvió URL de pago. Respuesta:', JSON.stringify(clipData));
-        return res.status(500).json({
-          success: false,
-          error: 'Clip no devolvió una URL de pago válida',
-          clip_response: clipData
-        });
+        console.error('❌ Stripe no devolvió URL de pago');
+        return res.status(500).json({ success: false, error: 'Stripe no devolvió una URL de pago válida' });
       }
 
       try {
@@ -396,10 +365,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paidAmount: totalAmount.toString()
         });
       } catch (dbError) {
-        console.error('❌ Error guardando paymentId:', dbError);
+        console.error('❌ Error guardando sessionId:', dbError);
       }
 
-      console.log('✅ Pago creado exitosamente en Clip:', checkoutUrl);
+      console.log('✅ Sesión Stripe creada:', checkoutUrl);
       return res.json({ success: true, checkoutUrl, checkoutId: paymentId, amount: totalAmount });
       
     } catch (error: any) {
@@ -413,103 +382,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Clip webhook endpoint - recibe resultados de pago
-  // Clip envía el evento cuando el estado del checkout cambia
-  app.post("/api/clip-webhook", async (req: Request, res: Response) => {
+  // Stripe webhook endpoint - recibe resultados de pago de Stripe
+  // Requiere body crudo (raw) para verificar firma; debe ir antes de express.json()
+  app.post("/api/stripe-webhook", express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+    const sig = req.headers['stripe-signature'] as string;
+    let event: Stripe.Event;
+
     try {
-      const webhookData = req.body;
-      console.log('📩 Webhook de Clip recibido:', JSON.stringify(webhookData));
-
-      // Clip envía: payment_request_id, status, metadata, amount, etc.
-      const {
-        payment_request_id,
-        status,
-        amount,
-        metadata
-      } = webhookData;
-
-      // Recuperar referencia desde metadata o desde payment_request_id guardado
-      const reference: string = metadata?.reference || payment_request_id || '';
-      const requestId: string = metadata?.request_id || reference.split('-')[0] || '';
-
-      if (!requestId) {
-        console.error('❌ Webhook Clip inválido - no se pudo determinar requestId');
-        return res.status(400).json({ error: 'requestId no encontrado en webhook' });
-      }
-
-      let paymentRequest = await storage.getPaymentRequest(requestId);
-
-      if (!paymentRequest) {
-        const allRequests = await storage.getAllPaymentRequests();
-        paymentRequest = allRequests.find(r => r.paymentIntentId === payment_request_id) || undefined;
-      }
-
-      if (!paymentRequest) {
-        console.error('❌ Solicitud no encontrada para requestId:', requestId);
-        return res.status(404).json({ error: 'Solicitud no encontrada' });
-      }
-
-      // Clip estados de éxito: CHECKOUT_COMPLETED
-      const isApproved = (status || '').toUpperCase() === 'CHECKOUT_COMPLETED';
-      // Clip estados de fallo: CHECKOUT_CANCELLED, CHECKOUT_EXPIRED
-      const isFailed = ['CHECKOUT_CANCELLED', 'CHECKOUT_EXPIRED'].includes((status || '').toUpperCase());
-
-      if (isApproved) {
-        console.log('✅ Pago aprobado por Clip - ID:', payment_request_id);
-
-        await storage.updatePaymentRequest(paymentRequest.id, {
-          status: 'completed',
-          paymentIntentId: payment_request_id,
-          paidAmount: amount?.toString() || '0',
-          paidAt: new Date().toISOString()
-        });
-
-        broadcastToAdmins({
-          type: 'payment_confirmed',
-          requestId: paymentRequest.id,
-          amount: parseFloat(amount) || 0,
-          paymentIntentId: payment_request_id
-        });
-
-        broadcastToUser(paymentRequest.id, {
-          type: 'payment_result',
-          success: true,
-          authorization: payment_request_id,
-          message: 'Pago aprobado exitosamente'
-        });
-      } else if (isFailed) {
-        console.error('❌ Pago rechazado/expirado por Clip - status:', status);
-
-        await storage.updatePaymentRequest(paymentRequest.id, {
-          status: 'rejected',
-          failureReason: status || 'Pago rechazado'
-        });
-
-        broadcastToAdmins({
-          type: 'payment_failed',
-          requestId: paymentRequest.id,
-          reason: status || 'Pago rechazado'
-        });
-
-        broadcastToUser(paymentRequest.id, {
-          type: 'payment_result',
-          success: false,
-          message: status === 'CHECKOUT_EXPIRED' ? 'El enlace de pago expiró' : 'Pago cancelado'
-        });
+      if (STRIPE_WEBHOOK_SECRET && sig && stripe) {
+        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
       } else {
-        console.log('ℹ️ Clip webhook con estado intermedio:', status, '- sin acción');
+        // Sin secret configurado: parsear directamente (solo para testing)
+        event = JSON.parse(req.body.toString()) as Stripe.Event;
+      }
+    } catch (err: any) {
+      console.error('❌ Firma de webhook Stripe inválida:', err.message);
+      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    }
+
+    console.log('📩 Webhook de Stripe recibido:', event.type);
+
+    try {
+      if (event.type === 'checkout.session.completed') {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const requestId: string = session.metadata?.request_id || '';
+        const sessionId = session.id;
+        const amountPaid = session.amount_total || 0;
+
+        if (!requestId) {
+          console.error('❌ Webhook Stripe sin request_id en metadata');
+          return res.status(400).json({ error: 'request_id no encontrado en metadata' });
+        }
+
+        let paymentRequest = await storage.getPaymentRequest(requestId);
+        if (!paymentRequest) {
+          const allRequests = await storage.getAllPaymentRequests();
+          paymentRequest = allRequests.find(r => r.paymentIntentId === sessionId) || undefined;
+        }
+
+        if (!paymentRequest) {
+          console.error('❌ Solicitud no encontrada para requestId:', requestId);
+          return res.status(404).json({ error: 'Solicitud no encontrada' });
+        }
+
+        if (session.payment_status === 'paid') {
+          console.log('✅ Pago aprobado por Stripe - Session:', sessionId);
+
+          await storage.updatePaymentRequest(paymentRequest.id, {
+            status: 'completed',
+            paymentIntentId: sessionId,
+            paidAmount: amountPaid.toString(),
+            paidAt: new Date().toISOString()
+          });
+
+          broadcastToAdmins({
+            type: 'payment_confirmed',
+            requestId: paymentRequest.id,
+            amount: amountPaid,
+            paymentIntentId: sessionId
+          });
+
+          broadcastToUser(paymentRequest.id, {
+            type: 'payment_result',
+            success: true,
+            authorization: sessionId,
+            message: 'Pago aprobado exitosamente'
+          });
+        }
+
+      } else if (event.type === 'checkout.session.expired') {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const requestId: string = session.metadata?.request_id || '';
+
+        if (requestId) {
+          const paymentRequest = await storage.getPaymentRequest(requestId);
+          if (paymentRequest) {
+            await storage.updatePaymentRequest(paymentRequest.id, {
+              status: 'rejected',
+              failureReason: 'Sesión de pago expirada'
+            });
+            broadcastToAdmins({ type: 'payment_failed', requestId: paymentRequest.id, reason: 'Sesión expirada' });
+            broadcastToUser(paymentRequest.id, { type: 'payment_result', success: false, message: 'El enlace de pago expiró' });
+          }
+        }
+      } else {
+        console.log('ℹ️ Stripe webhook ignorado:', event.type);
       }
 
       return res.status(200).json({ received: true });
     } catch (error: any) {
-      console.error('❌ Error procesando webhook de Clip:', error);
+      console.error('❌ Error procesando webhook de Stripe:', error);
       return res.status(500).json({ error: error.message });
     }
   });
 
-  // Clip redirect endpoint - el usuario vuelve aquí tras el pago
-  app.get("/api/clip-return", async (req: Request, res: Response) => {
-    console.log('🔄 Usuario retornó de Clip:', JSON.stringify(req.query));
+  // Stripe redirect endpoint - el usuario vuelve aquí tras el pago
+  app.get("/api/stripe-return", async (req: Request, res: Response) => {
+    console.log('🔄 Usuario retornó de Stripe:', JSON.stringify(req.query));
     const status = req.query.status;
     if (status === 'success') {
       res.redirect('/payment-success');

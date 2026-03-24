@@ -24,11 +24,11 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: RESTful endpoints with WebSocket fallback for real-time features
 
 ## Payment Processing Architecture
-- **Primary Provider**: Clip (clip.mx) payment gateway, MXN currency (CLIP_CURRENCY env var configurable)
-- **Payment Flow**: Backend creates checkout link via Clip API → user redirected to Clip hosted checkout → Clip sends webhook with result
-- **API Endpoints**: Base URL `https://api-gw.payclip.com`; endpoint `POST /checkout`; auth via `x-api-key` header
-- **Webhook**: POST /api/clip-webhook receives payment results; GET /api/clip-return handles user redirect back
-- **Security**: Server-side amount calculation prevents client tampering; API key stored as CLIP_API_KEY secret
+- **Primary Provider**: Stripe payment gateway, CLP currency (peso chileno, moneda sin decimales en Stripe)
+- **Payment Flow**: Backend creates Stripe Checkout Session → user redirected to Stripe hosted checkout → Stripe sends webhook with result
+- **API**: `stripe.checkout.sessions.create()` with `currency: 'clp'`, `mode: 'payment'`; amounts in whole pesos (no cents)
+- **Webhook**: POST /api/stripe-webhook receives Stripe events (`checkout.session.completed`, `checkout.session.expired`); GET /api/stripe-return handles user redirect back
+- **Security**: Server-side amount calculation prevents client tampering; keys stored as STRIPE_SECRET_KEY and VITE_STRIPE_PUBLIC_KEY secrets; optional webhook signature verification via STRIPE_WEBHOOK_SECRET
 - **RUT Validation**: Chilean tax ID validation with checksum verification
 
 ## Real-time Communication Design
@@ -46,8 +46,8 @@ Preferred communication style: Simple, everyday language.
 # External Dependencies
 
 ## Payment Providers
-- **Clip**: Primary payment processor via redirect-based checkout API (clip.mx, MXN currency)
-- **Clip API**: REST API at api-gw.payclip.com; POST /checkout to create payment link; auth via x-api-key header; key stored as CLIP_API_KEY secret
+- **Stripe**: Primary payment processor via Stripe Checkout (redirect-based); CLP currency (peso chileno)
+- **Stripe API**: SDK `stripe` npm package; `checkout.sessions.create()` to create payment link; keys stored as STRIPE_SECRET_KEY (backend) and VITE_STRIPE_PUBLIC_KEY (frontend) secrets
 
 ## Database Services
 - **Neon Database**: Serverless PostgreSQL provider via `@neondatabase/serverless`
