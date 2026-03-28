@@ -32,36 +32,6 @@ interface PaymentRequest {
 }
 
 export default function AdminPanel(_props: RouteComponentProps) {
-  // Ya no necesitamos las referencias para los elementos de audio
-  
-  // Función ultrasimplificada para reproducir el sonido de nuevo usuario
-  const playNewUserSound = () => {
-    console.log("▶️ Reproduciendo sonido de nuevo usuario (Squirtle)");
-    
-    if (typeof window.playAudio === 'function') {
-      window.playAudio('/sounds/squirtle.mp3');
-    } else {
-      // Fallback si la función global no está disponible
-      const audio = new Audio('/sounds/squirtle.mp3');
-      audio.volume = 1.0;
-      audio.play().catch(e => console.error('Error reproduciendo sonido:', e));
-    }
-  };
-  
-  // Función ultrasimplificada para reproducir el sonido de pago completado
-  const playCompletedPaymentSound = () => {
-    console.log("▶️ Reproduciendo sonido de notificación de pago");
-    
-    if (typeof window.playAudio === 'function') {
-      window.playAudio('/sounds/notification.mp3');
-    } else {
-      // Fallback si la función global no está disponible
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.volume = 1.0;
-      audio.play().catch(e => console.error('Error reproduciendo sonido:', e));
-    }
-  };
-  
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const auth = sessionStorage.getItem('adminAuth');
     return auth === 'true';
@@ -200,51 +170,6 @@ export default function AdminPanel(_props: RouteComponentProps) {
     fetchRequests();
     fetchOnlineUsers();
     
-    console.log('Inicializando sistema de sonido...');
-    
-    // Cargar el script de sonido ultra-simplificado
-    const script = document.createElement('script');
-    script.src = '/play-sound.js?v=20250425';
-    script.id = 'play-sound-script';
-    script.async = true;
-    document.body.appendChild(script);
-    
-    script.onload = () => {
-      console.log('Sistema de reproducción de sonidos cargado correctamente');
-      
-      // Verificar si el script cargó correctamente
-      if (typeof window.playAudio === 'function') {
-        console.log('✅ Función playAudio disponible globalmente');
-        
-        // Probar reproducción en primer clic para habilitar
-        document.addEventListener('click', function unlockAudio() {
-          // Crear un Audio silencioso para desbloquear reproducción
-          const silentAudio = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAABhTEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQAB9AAAAnGMHkkIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQxAADgnABGiAAQBCqgCRMAAgEAH///////////////7+n/9FTuQsQH//////2NG0jWUGlio5gLQTOtIoeR2WX////X4s9Atb/JRVCbBUpeRUq//////////////7cZYdOR2WX////+xDECgPCjAEQAABN4AAANIAAAAQVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==");
-          silentAudio.play().then(() => {
-            console.log('✅ Audio desbloqueado con éxito');
-            
-            // Reproducir un sonido muy corto para verificar que funciona
-            setTimeout(() => {
-              playNewUserSound();
-            }, 500);
-            
-          }).catch(err => {
-            console.log('❌ No se pudo desbloquear el audio:', err);
-          });
-          
-          document.removeEventListener('click', unlockAudio);
-        }, { once: true });
-      } else {
-        console.error('❌ Función playAudio no disponible, verificar carga del script');
-      }
-    };
-    
-    // La activación del audio ahora se maneja completamente en play-sound.js
-    console.log('Sistema de audio se activará con la primera interacción del usuario');
-    
-    // Mostrar notificación para que el usuario interactúe y se desbloquee el audio
-    addNotification('Haz clic en esta notificación para activar los sonidos de alerta', 'info');
-    
     // Configurar un intervalo para actualizar solo los usuarios conectados cada 5 segundos
     // y las solicitudes que no estén completadas
     const interval = setInterval(() => {
@@ -330,10 +255,8 @@ export default function AdminPanel(_props: RouteComponentProps) {
               updated[userIndex] = data.user;
               return updated;
             } else {
-              // Agregar nuevo usuario y reproducir sonido de notificación
+              // Agregar nuevo usuario
               console.log('¡Nuevo usuario conectado!', data.user);
-              // Reproducir el sonido de Squirtle para alertar al administrador
-              playNewUserSound();
               // Mostrar notificación visual
               const rutDisplay = data.user.rut ? ` (RUT: ${data.user.rut})` : '';
               addNotification(`¡Nuevo usuario conectado!${rutDisplay}`, 'info');
@@ -401,8 +324,6 @@ export default function AdminPanel(_props: RouteComponentProps) {
           
           // Si el estado cambió a "completed", mostrar una notificación
           if (data.request.status === 'completed') {
-            // Reproducir sonido específico para alertar del pago completado
-            playCompletedPaymentSound();
             console.log(`🔔 ¡IMPORTANTE! La solicitud ${data.request.id} ha sido PAGADA`);
             
             // Mostrar notificación visual
@@ -722,8 +643,6 @@ export default function AdminPanel(_props: RouteComponentProps) {
   
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      {/* Los elementos de audio se manejan desde play-sound.js */}
-      
       {/* Contenedor de notificaciones */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {notifications.map(notification => (
@@ -753,28 +672,6 @@ export default function AdminPanel(_props: RouteComponentProps) {
                     <span className="text-sm font-medium">
                       {onlineUsers.filter(u => u.connected).length} usuarios en línea
                     </span>
-                  </div>
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={() => {
-                        playNewUserSound();
-                        addNotification("Sonido de nuevo usuario (Squirtle)", "info");
-                      }}
-                      className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded"
-                      title="Probar sonido de nuevo usuario"
-                    >
-                      🔊 Squirtle
-                    </button>
-                    <button
-                      onClick={() => {
-                        playCompletedPaymentSound();
-                        addNotification("Sonido de pago completado", "success");
-                      }}
-                      className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded"
-                      title="Probar sonido de pago completado"
-                    >
-                      🔊 Pago
-                    </button>
                   </div>
                 </div>
               </div>
