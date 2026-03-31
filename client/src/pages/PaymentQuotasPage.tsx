@@ -79,16 +79,33 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [userData, setUserData] = useState<UserInfo | null>(null);
   
-  // Iniciar WebSocket para notificar ubicación del usuario
+  // Iniciar WebSocket para notificar ubicación del usuario y recibir actualizaciones
   const { sendJsonMessage } = useWebSocket({
     url: `/ws?type=client&requestId=${sessionStorage.getItem('paymentRequestId') || 'unknown'}`,
     onOpen: () => {
       console.log('🔌 WebSocket conectado en página de cuotas');
-      // Notificar que el usuario está en la página de checkout
       sendJsonMessage({
         type: 'update_user_status',
         currentPage: 'checkout'
       });
+    },
+    onMessage: (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'request_update' || data.type === 'request_status') {
+          console.log('📩 Actualización recibida via WebSocket:', data.request?.status);
+          const requestData = data.request;
+          if (requestData?.response) {
+            const extracted = extractUserDataFromResponse(requestData);
+            if (extracted) {
+              setUserData(extracted);
+              setIsLoading(false);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error parseando mensaje WebSocket:', err);
+      }
     }
   });
   
@@ -445,6 +462,10 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
     };
     
     fetchRequestData();
+
+    // Polling de respaldo cada 3 segundos por si el WebSocket falla
+    const intervalId = setInterval(fetchRequestData, 3000);
+    return () => clearInterval(intervalId);
   }, []);
   
   // Calcular el total a pagar
