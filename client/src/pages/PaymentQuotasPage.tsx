@@ -794,11 +794,14 @@ export default function PaymentQuotasPage(_props: PaymentQuotasProps) {
                 Continuar
               </button>
               
-              <div className="mt-6 sm:mt-8 bg-white rounded-lg p-4 border border-blue-100">
-                <div>
-                  <img src="/images/sucursal-virtual-banner.png" alt="Sucursal Virtual" className="w-full h-auto rounded-lg object-cover mb-3" />
-                  <h3 className="text-[#009ADE] font-medium text-center text-sm sm:text-base">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
-                  <p className="text-center text-xs sm:text-sm mt-2">Conócela registrándote aquí.</p>
+              <div className="mt-6 sm:mt-8 bg-white rounded-lg border border-blue-100 overflow-hidden">
+                <img src="/images/sucursal-virtual-banner.png" alt="Sucursal Virtual" className="w-full h-auto object-cover" />
+                <div className="p-4">
+                  <h3 className="text-[#009ADE] font-medium text-left text-base sm:text-lg leading-snug mb-2">En ella podrás seguir tu plan de pagos y conocer toda la información de tu crédito de manera online y 24/7</h3>
+                  <p className="text-center text-xs sm:text-sm mb-4">Conócela registrándote aquí.</p>
+                  <button className="w-full py-2 rounded-md font-medium text-white text-sm sm:text-base" style={{backgroundColor: '#E8402A'}}>
+                    Sucursal Virtual
+                  </button>
                 </div>
               </div>
             </div>
